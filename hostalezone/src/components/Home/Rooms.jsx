@@ -20,7 +20,7 @@ const RoomsPage = () => {
   const roomTypes = ['All', 'Single', 'Shared'];
 
   // Base URL for your backend
-  const BASE_URL = 'http://localhost:8070';
+  const BASE_URL = 'http://localhost:5000';
 
   // Default placeholder images for different room types
   const DEFAULT_IMAGES = {
