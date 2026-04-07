@@ -13,7 +13,7 @@ const PORT = 5000;
 
 // 🔥 MongoDB Atlas Connection (PUT YOUR OWN LINK HERE)
 const MONGO_URI =
-  "mongodb+srv://withmalwijesiri:12345ometh@cluster0.yb9sm.mongodb.net/RoomManagement?appName=Cluster0";
+  "mongodb://withmalwijesiri:12345ometh@cluster0-shard-00-00.yb9sm.mongodb.net:27017,cluster0-shard-00-01.yb9sm.mongodb.net:27017,cluster0-shard-00-02.yb9sm.mongodb.net:27017/RoomManagement?ssl=true&replicaSet=atlas-xw65gf-shard-0&authSource=admin&appName=Cluster0";
 
 // =========================
 // CORS
