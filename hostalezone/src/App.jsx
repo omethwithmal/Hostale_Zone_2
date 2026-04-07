@@ -20,7 +20,7 @@ import RoomManagementSidebar from "./components/RoomManageMentNavebar/RoomManage
 
 
 //Ranga
-import HostelAbout from "./components/HostelAbout/HostelAbout"; 
+import HostelAbout from "./components/HostelAbout R/AboutR"; 
 
 
 
@@ -71,7 +71,7 @@ function App() {
         <Route path="/RoomManagementSidebar" element={<RoomManagementSidebar />} />
 
         //Ranga
-        <Route path="/HostelAbout" element={<HostelAbout />} />
+        <Route path="/AboutR" element={<HostelAbout />} />
 
       </Routes>
     </Router>
