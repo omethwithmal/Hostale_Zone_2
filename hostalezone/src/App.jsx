@@ -19,6 +19,10 @@ import RoomManageMentNavebar from "./components/RoomManageMentNavebar/RoomManage
 import RoomManagementSidebar from "./components/RoomManageMentNavebar/RoomManagementSidebar";
 
 
+//Ranga
+import HostelAbout from "./components/HostelAbout/HostelAbout"; 
+
+
 
 
 
@@ -65,6 +69,10 @@ function App() {
         <Route path="/RoomManagementDashboard" element={<RoomManagementDashboard />} />
         <Route path="/RoomManageMentNavebar" element={<RoomManageMentNavebar />} />
         <Route path="/RoomManagementSidebar" element={<RoomManagementSidebar />} />
+
+        //Ranga
+        <Route path="/HostelAbout" element={<HostelAbout />} />
+
       </Routes>
     </Router>
   );
