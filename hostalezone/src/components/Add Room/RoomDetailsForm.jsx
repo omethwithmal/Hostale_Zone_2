@@ -81,7 +81,7 @@ const RoomDetailsForm = () => {
   });
 
   // Base URL for API
-  const API_BASE_URL = 'http://localhost:8070/roomdetails';
+  const API_BASE_URL = 'http://localhost:5000/roomdetails';
 
   // Apply dark mode class to html element
   useEffect(() => {
