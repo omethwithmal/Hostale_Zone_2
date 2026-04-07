@@ -22,6 +22,10 @@ import RoomManagementSidebar from "./components/RoomManageMentNavebar/RoomManage
 //Ranga
 import HostelAbout from "./components/HostelAbout/HostelAbout"; 
 
+//hansica
+import Complaints from "./components/complain/complain";
+
+
 
 
 
@@ -72,6 +76,11 @@ function App() {
 
         //Ranga
         <Route path="/HostelAbout" element={<HostelAbout />} />
+
+        //hansica
+        <Route path="/Complaints" element={<Complaints />} />
+        
+
 
       </Routes>
     </Router>
