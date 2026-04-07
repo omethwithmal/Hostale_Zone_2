@@ -13,7 +13,7 @@ const PORT = 5000;
 
 // 🔥 MongoDB Atlas Connection (PUT YOUR OWN LINK HERE)
 const MONGO_URI =
-  "mongodb+srv://admin:r6xGO5FZH24eeqMr@cluster0.6uccgcl.mongodb.net/hostel_management";
+  "mongodb+srv://withmalwijesiri:12345ometh@cluster0.yb9sm.mongodb.net/RoomManagement?appName=Cluster0";
 
 // =========================
 // CORS
