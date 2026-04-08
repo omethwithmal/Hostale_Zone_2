@@ -20,7 +20,13 @@ import RoomManagementSidebar from "./components/RoomManageMentNavebar/RoomManage
 
 
 //Ranga
-import HostelAbout from "./components/HostelAbout/HostelAbout"; 
+import R_AdminDashboard from "./components/RANGA/R_AdminDashboard";
+import R_AdminLeaveManagement from "./components/RANGA/R_AdminLeaveManagement";
+import StudentRegistration from "./components/Auth/StudentRegistration";
+import SignIn from "./components/Auth/SignIn";
+import StudentProfile from "./components/Auth/StudentProfile";
+import LeaveRequest from "./components/RANGA/LeaveRequest";
+
 
 //hansica
 import Complaints from "./components/complain/complain";
@@ -75,7 +81,12 @@ function App() {
         <Route path="/RoomManagementSidebar" element={<RoomManagementSidebar />} />
 
         //Ranga
-        <Route path="/HostelAbout" element={<HostelAbout />} />
+       <Route path="/R_AdminDashboard" element={<R_AdminDashboard />} />
+       <Route path="/R_AdminLeaveManagement" element={<R_AdminLeaveManagement />} />
+        <Route path="/StudentRegistration" element={<StudentRegistration />} />
+        <Route path="/StudentProfile" element={<StudentProfile />} />
+        <Route path="/SignIn" element={<SignIn />} />
+        <Route path="/LeaveRequest" element={<LeaveRequest />} />
 
         //hansica
         <Route path="/Complaints" element={<Complaints />} />
