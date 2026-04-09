@@ -7,7 +7,7 @@ const SignIn = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    role: 'student'
+    userType: 'student'
   });
 
   const [errors, setErrors] = useState({});
@@ -15,11 +15,28 @@ const SignIn = () => {
   const [touched, setTouched] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [serverError, setServerError] = useState('');
 
   const roles = [
     { value: 'admin', label: 'Administrator', icon: 'bi-shield-lock-fill', desc: 'System Management' },
     { value: 'student', label: 'Student', icon: 'bi-mortarboard-fill', desc: 'Learning Platform' }
   ];
+
+  // 🎯 Email to Route mapping
+  const emailRoutes = {
+    'ometh@gmail.com': '/RoomManagementDashboard',
+    'ranga@gmail.com': '/R_AdminDashboard',
+    'hansika@gmail.com': '/R_AdminDashboard',
+    'angalee@gmail.com': '/R_AdminDashboard'
+  };
+
+  // 🎯 Valid Users (Frontend only - for testing)
+  const validUsers = {
+    'ometh@gmail.com': { password: '123456', fullName: 'Ometh', userType: 'admin' },
+    'ranga@gmail.com': { password: '123456', fullName: 'Ranga', userType: 'admin' },
+    'hansika@gmail.com': { password: '123456', fullName: 'Hansika', userType: 'admin' },
+    'angalee@gmail.com': { password: '123456', fullName: 'Angalee', userType: 'admin' }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -27,25 +44,11 @@ const SignIn = () => {
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
+    setServerError('');
   };
 
   const handleBlur = (field) => {
     setTouched(prev => ({ ...prev, [field]: true }));
-  };
-
-  const validateField = (name, value) => {
-    switch (name) {
-      case 'email':
-        if (!value.trim()) return 'Email address is required';
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Please enter a valid email address';
-        return '';
-      case 'password':
-        if (!value) return 'Password is required';
-        if (value.length < 6) return 'Password must be at least 6 characters';
-        return '';
-      default:
-        return '';
-    }
   };
 
   const validateForm = () => {
@@ -72,16 +75,66 @@ const SignIn = () => {
     return isValid;
   };
 
+  // 🎯 Function to determine redirect URL based on email
+  const getRedirectUrl = (email, userType) => {
+    const normalizedEmail = email.toLowerCase().trim();
+    
+    // Check for special email routes first
+    if (emailRoutes[normalizedEmail]) {
+      return emailRoutes[normalizedEmail];
+    }
+    
+    // Default role-based routing
+    if (userType === 'admin') {
+      return '/admin-dashboard';
+    }
+    
+    return '/StudentProfile';
+  };
+
+  // 🎯 Frontend only login - NO BACKEND CALL
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setServerError('');
 
     if (validateForm()) {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      console.log('Sign In Data:', { email: formData.email, password: formData.password, role: formData.role, rememberMe });
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      const roleName = formData.role === 'admin' ? 'Administrator' : 'Student';
-      alert(`Welcome ${roleName}! Sign in successful.\nCheck console for details.`);
+      const normalizedEmail = formData.email.toLowerCase().trim();
+      const user = validUsers[normalizedEmail];
+      
+      // Check if user exists and password matches
+      if (user && user.password === formData.password) {
+        // Create mock user data
+        const mockUser = {
+          fullName: user.fullName,
+          email: formData.email,
+          userType: formData.userType
+        };
+        
+        // Store in localStorage
+        localStorage.setItem('user', JSON.stringify(mockUser));
+        localStorage.setItem('token', 'mock-token-123456');
+        
+        if (rememberMe) {
+          localStorage.setItem('rememberedEmail', formData.email);
+        } else {
+          localStorage.removeItem('rememberedEmail');
+        }
+        
+        // Get redirect URL
+        const redirectUrl = getRedirectUrl(formData.email, formData.userType);
+        
+        // Show success message
+        alert(`Welcome ${user.fullName}! Login successful.`);
+        
+        // Navigate
+        navigate(redirectUrl);
+      } else {
+        setServerError('Invalid email or password. Please try again.');
+      }
     }
     setIsSubmitting(false);
   };
@@ -90,9 +143,17 @@ const SignIn = () => {
     navigate('/StudentRegistration');
   };
 
+  // Load remembered email on component mount
+  React.useEffect(() => {
+    const rememberedEmail = localStorage.getItem('rememberedEmail');
+    if (rememberedEmail) {
+      setFormData(prev => ({ ...prev, email: rememberedEmail }));
+      setRememberMe(true);
+    }
+  }, []);
+
   return (
     <>
-      {/* Bootstrap Icons CDN */}
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
       
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -116,6 +177,13 @@ const SignIn = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6">
+              {serverError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm flex items-start gap-2">
+                  <i className="bi bi-exclamation-triangle-fill text-red-500 mt-0.5"></i>
+                  <span>{serverError}</span>
+                </div>
+              )}
+
               {/* Role Selection */}
               <div className="mb-6">
                 <label className="block text-gray-700 text-sm font-medium mb-3">
@@ -126,30 +194,30 @@ const SignIn = () => {
                     <label
                       key={role.value}
                       className={`relative cursor-pointer transition-all duration-200 ${
-                        formData.role === role.value ? 'ring-2 ring-blue-500 ring-offset-2 rounded-lg' : ''
+                        formData.userType === role.value ? 'ring-2 ring-blue-500 ring-offset-2 rounded-lg' : ''
                       }`}
                     >
                       <input
                         type="radio"
-                        name="role"
+                        name="userType"
                         value={role.value}
-                        checked={formData.role === role.value}
+                        checked={formData.userType === role.value}
                         onChange={handleChange}
                         className="sr-only"
                       />
                       <div className={`p-3 rounded-lg border transition-all duration-200 ${
-                        formData.role === role.value
+                        formData.userType === role.value
                           ? 'border-blue-500 bg-blue-50'
                           : 'border-gray-200 bg-white hover:border-gray-300'
                       }`}>
                         <div className="flex items-center gap-3">
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                            formData.role === role.value ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'
+                            formData.userType === role.value ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'
                           }`}>
                             <i className={`${role.icon} text-sm`}></i>
                           </div>
                           <div>
-                            <p className={`text-sm font-medium ${formData.role === role.value ? 'text-blue-700' : 'text-gray-700'}`}>
+                            <p className={`text-sm font-medium ${formData.userType === role.value ? 'text-blue-700' : 'text-gray-700'}`}>
                               {role.label}
                             </p>
                             <p className="text-xs text-gray-400">{role.desc}</p>
@@ -176,13 +244,18 @@ const SignIn = () => {
                     value={formData.email}
                     onChange={handleChange}
                     onBlur={() => handleBlur('email')}
-                    placeholder="name@university.edu"
+                    placeholder="Enter your email address"
                     className={`w-full pl-9 pr-3 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
-                      touched.email && errors.email ? 'border-red-400 focus:border-red-400 focus:ring-red-500/20' : 'border-gray-200'
+                      touched.email && errors.email ? 'border-red-400' : 'border-gray-200'
                     }`}
                   />
                 </div>
-                {touched.email && errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+                {touched.email && errors.email && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                    <i className="bi bi-exclamation-circle"></i>
+                    {errors.email}
+                  </p>
+                )}
               </div>
 
               {/* Password Field */}
@@ -202,18 +275,23 @@ const SignIn = () => {
                     onBlur={() => handleBlur('password')}
                     placeholder="Enter your password"
                     className={`w-full pl-9 pr-9 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
-                      touched.password && errors.password ? 'border-red-400 focus:border-red-400 focus:ring-red-500/20' : 'border-gray-200'
+                      touched.password && errors.password ? 'border-red-400' : 'border-gray-200'
                     }`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
                   >
                     <i className={showPassword ? "bi bi-eye-slash text-sm" : "bi bi-eye text-sm"}></i>
                   </button>
                 </div>
-                {touched.password && errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+                {touched.password && errors.password && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                    <i className="bi bi-exclamation-circle"></i>
+                    {errors.password}
+                  </p>
+                )}
               </div>
 
               {/* Remember Me & Forgot Password */}
@@ -229,7 +307,8 @@ const SignIn = () => {
                 </label>
                 <button
                   type="button"
-                  className="text-xs text-blue-600 hover:text-blue-700 hover:underline"
+                  onClick={() => alert('Password reset link will be sent to your email')}
+                  className="text-xs text-blue-600 hover:text-blue-700 hover:underline transition-all"
                 >
                   Forgot password?
                 </button>
@@ -240,7 +319,7 @@ const SignIn = () => {
                 type="submit"
                 disabled={isSubmitting}
                 className={`w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 ${
-                  isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
+                  isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-md'
                 }`}
               >
                 {isSubmitting ? (
@@ -256,35 +335,7 @@ const SignIn = () => {
                 )}
               </button>
 
-              {/* Divider */}
-              <div className="relative my-5">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-100"></div>
-                </div>
-                <div className="relative flex justify-center text-xs">
-                  <span className="px-3 bg-white text-gray-400">Or continue with</span>
-                </div>
-              </div>
-
-              {/* Social Login */}
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  className="flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all"
-                >
-                  <i className="bi bi-google text-sm"></i>
-                  Google
-                </button>
-                <button
-                  type="button"
-                  className="flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all"
-                >
-                  <i className="bi bi-microsoft text-sm"></i>
-                  Microsoft
-                </button>
-              </div>
-
-              {/* Sign Up Link - Connected to StudentRegistration */}
+              {/* Sign Up Link */}
               <div className="mt-5 text-center">
                 <p className="text-xs text-gray-500">
                   Don't have an account?{' '}
@@ -299,6 +350,8 @@ const SignIn = () => {
               </div>
             </form>
           </div>
+
+          
 
           {/* Footer */}
           <div className="mt-6 text-center">

@@ -1,5 +1,33 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+
+// Input field component moved outside to prevent re-rendering issues
+const InputField = ({ label, name, type = 'text', placeholder, icon, value, onChange, error }) => (
+  <div className="mb-4">
+    <label className="block text-gray-700 text-sm font-medium mb-2">
+      {label} <span className="text-red-500">*</span>
+    </label>
+    <div className="relative">
+      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <i className={`${icon} text-gray-400 text-sm`}></i>
+      </div>
+      <input
+        type={type}
+        name={name}
+        value={value || ''}
+        onChange={onChange}
+        placeholder={placeholder}
+        className={`w-full pl-9 pr-3 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
+          error ? 'border-red-400' : 'border-gray-200 hover:border-gray-300'
+        }`}
+      />
+    </div>
+    {error && (
+      <p className="text-red-500 text-xs mt-1">{error}</p>
+    )}
+  </div>
+);
 
 const StudentRegistration = () => {
   const navigate = useNavigate();
@@ -11,26 +39,31 @@ const StudentRegistration = () => {
     phone: '',
     password: '',
     confirmPassword: '',
-    department: 'computing',
+    department: 'Computer Science',
     address: '',
     profilePhoto: null
   });
 
-  const [errors, setErrors] = useState({});
   const [photoPreview, setPhotoPreview] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [touched, setTouched] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serverError, setServerError] = useState('');
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const departments = [
-    { value: 'computing', label: 'Computing', icon: 'bi-laptop', desc: 'Computer Science & IT' },
-    { value: 'business', label: 'Business', icon: 'bi-graph-up', desc: 'Management & Commerce' },
-    { value: 'engineering', label: 'Engineering', icon: 'bi-tools', desc: 'Civil & Mechanical' }
+    { value: 'Computer Science', label: 'Computer Science', icon: 'bi-laptop', desc: 'Computer Science & IT' },
+    { value: 'Engineering', label: 'Engineering', icon: 'bi-tools', desc: 'Civil & Mechanical Engineering' },
+    { value: 'Business', label: 'Business', icon: 'bi-graph-up', desc: 'Management & Commerce' },
+    { value: 'Medicine', label: 'Medicine', icon: 'bi-heart-pulse', desc: 'Medical Sciences' },
+    { value: 'Law', label: 'Law', icon: 'bi-scale', desc: 'Legal Studies' },
+    { value: 'Other', label: 'Other', icon: 'bi-building', desc: 'Other Departments' }
   ];
 
   const handleChange = (e) => {
     const { name, value, type, files } = e.target;
+    
     if (type === 'file') {
       const file = files[0];
       setFormData(prev => ({ ...prev, [name]: file }));
@@ -43,138 +76,126 @@ const StudentRegistration = () => {
       } else {
         setPhotoPreview(null);
       }
-      if (errors.profilePhoto) {
-        setErrors(prev => ({ ...prev, profilePhoto: '' }));
-      }
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
-      if (errors[name]) {
-        setErrors(prev => ({ ...prev, [name]: '' }));
-      }
     }
-  };
-
-  const handleBlur = (field) => {
-    setTouched(prev => ({ ...prev, [field]: true }));
-  };
-
-  const validateField = (name, value) => {
-    switch (name) {
-      case 'itNumber':
-        if (!value.trim()) return 'IT Number is required';
-        if (!/^IT\d{6,8}$/i.test(value.trim())) return 'Format: IT followed by 6-8 digits (e.g., IT123456)';
-        return '';
-      case 'fullName':
-        if (!value.trim()) return 'Full Name is required';
-        if (value.trim().length < 3) return 'Minimum 3 characters';
-        if (!/^[A-Za-z\s]{3,50}$/.test(value.trim())) return 'Only letters and spaces allowed';
-        return '';
-      case 'email':
-        if (!value.trim()) return 'Email is required';
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Enter a valid email address';
-        return '';
-      case 'phone':
-        if (!value.trim()) return 'Phone number is required';
-        const phoneClean = value.replace(/[\s-+()]/g, '');
-        if (!/^[0-9]{10,12}$/.test(phoneClean)) return 'Enter 10-12 digits';
-        return '';
-      case 'password':
-        if (!value) return 'Password is required';
-        if (value.length < 8) return 'At least 8 characters';
-        if (!/(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])/.test(value)) return 'Must contain uppercase, lowercase & number';
-        return '';
-      case 'confirmPassword':
-        if (!value) return 'Please confirm your password';
-        if (value !== formData.password) return 'Passwords do not match';
-        return '';
-      case 'address':
-        if (!value.trim()) return 'Address is required';
-        if (value.trim().length < 10) return 'Please enter complete address';
-        return '';
-      case 'profilePhoto':
-        if (!value) return 'Profile photo is required';
-        if (value && !['image/jpeg', 'image/png', 'image/jpg'].includes(value.type)) return 'Only JPG, JPEG, or PNG';
-        if (value && value.size > 5 * 1024 * 1024) return 'Max size 5MB';
-        return '';
-      default:
-        return '';
+    
+    // Clear errors when user starts typing
+    if (fieldErrors[name]) {
+      setFieldErrors(prev => ({ ...prev, [name]: '' }));
     }
+    setServerError('');
+    setShowSuccessMessage(false);
   };
 
   const validateForm = () => {
-    const fields = ['itNumber', 'fullName', 'email', 'phone', 'password', 'confirmPassword', 'address', 'profilePhoto'];
-    const newErrors = {};
-    let isValid = true;
+    const errors = {};
     
-    fields.forEach(field => {
-      const error = validateField(field, formData[field]);
-      if (error) {
-        newErrors[field] = error;
-        isValid = false;
-      }
+    if (!formData.itNumber.trim()) errors.itNumber = 'IT Number is required';
+    if (!formData.fullName.trim()) errors.fullName = 'Full Name is required';
+    if (!formData.email.trim()) errors.email = 'Email is required';
+    if (!formData.phone.trim()) errors.phone = 'Phone number is required';
+    if (!formData.password) errors.password = 'Password is required';
+    if (!formData.confirmPassword) errors.confirmPassword = 'Please confirm your password';
+    if (formData.password !== formData.confirmPassword) errors.confirmPassword = 'Passwords do not match';
+    if (!formData.address.trim()) errors.address = 'Address is required';
+    if (!formData.profilePhoto) errors.profilePhoto = 'Profile photo is required';
+    
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const convertToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
     });
-    
-    setErrors(newErrors);
-    return isValid;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
     
-    if (validateForm()) {
-      const { confirmPassword, ...submitData } = formData;
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('Registration Data:', submitData);
-      alert('✅ Registration Successful! Check console for details.');
+    if (!validateForm()) {
+      return;
     }
-    setIsSubmitting(false);
+    
+    setIsSubmitting(true);
+    setServerError('');
+    setShowSuccessMessage(false);
+    
+    try {
+      let profilePhotoBase64 = '';
+      if (formData.profilePhoto) {
+        profilePhotoBase64 = await convertToBase64(formData.profilePhoto);
+      }
+
+      const submitData = {
+        itNumber: formData.itNumber,
+        fullName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+        department: formData.department,
+        address: formData.address,
+        profilePhoto: profilePhotoBase64
+      };
+
+      console.log("Sending data to backend:", submitData);
+
+      const response = await axios.post('http://localhost:5000/api/auth/register', submitData, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log("Response from backend:", response.data);
+
+      if (response.data.success) {
+        setShowSuccessMessage(true);
+        
+        setFormData({
+          itNumber: '',
+          fullName: '',
+          email: '',
+          phone: '',
+          password: '',
+          confirmPassword: '',
+          department: 'Computer Science',
+          address: '',
+          profilePhoto: null
+        });
+        setPhotoPreview(null);
+        setFieldErrors({});
+        
+        setTimeout(() => {
+          navigate('/SignIn');
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Registration error details:', error);
+      
+      if (error.response) {
+        console.error('Error response data:', error.response.data);
+        setServerError(error.response.data?.message || error.response.data?.error || `Server error: ${error.response.status}`);
+      } else if (error.request) {
+        setServerError('Cannot connect to server. Please make sure the backend is running on port 5000');
+      } else {
+        setServerError(error.message || 'Registration failed. Please try again.');
+      }
+      setIsSubmitting(false);
+    }
   };
 
   const handleSignIn = () => {
     navigate('/SignIn');
   };
 
-  const InputField = ({ label, name, type = 'text', placeholder, icon, required = true }) => {
-    const error = touched[name] ? errors[name] : '';
-    const value = formData[name];
-    
-    return (
-      <div className="mb-4 group">
-        <label className="block text-gray-700 text-sm font-medium mb-2">
-          {label} {required && <span className="text-red-500">*</span>}
-        </label>
-        <div className="relative">
-          {icon && (
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <i className={`${icon} text-gray-400 text-sm transition-colors duration-200 group-focus-within:text-blue-500 ${error ? 'text-red-400' : ''}`}></i>
-            </div>
-          )}
-          <input
-            type={type}
-            name={name}
-            value={value}
-            onChange={handleChange}
-            onBlur={() => handleBlur(name)}
-            placeholder={placeholder}
-            className={`w-full ${icon ? 'pl-9' : 'pl-3'} pr-9 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
-              error ? 'border-red-400 focus:border-red-400 focus:ring-red-500/20' : 'border-gray-200 hover:border-gray-300'
-            }`}
-          />
-          {value && !error && (
-            <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-              <i className="bi bi-check-circle-fill text-green-500 text-xs"></i>
-            </div>
-          )}
-        </div>
-        {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-      </div>
-    );
-  };
-
   return (
     <>
-      {/* Bootstrap Icons CDN */}
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
       
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 py-8 px-4 sm:px-6 lg:px-8">
@@ -199,6 +220,27 @@ const StudentRegistration = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6">
+              {/* Success Message */}
+              {showSuccessMessage && (
+                <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <i className="bi bi-check-circle-fill text-green-600 text-xl"></i>
+                    <div>
+                      <p className="text-green-800 font-medium">Registration Successful!</p>
+                      <p className="text-green-600 text-sm">Redirecting to Sign In page...</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Server Error Message */}
+              {serverError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-600 text-sm font-medium">Error:</p>
+                  <p className="text-red-600 text-sm">{serverError}</p>
+                </div>
+              )}
+
               {/* Two Column Layout */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Left Column */}
@@ -208,12 +250,18 @@ const StudentRegistration = () => {
                     name="itNumber"
                     placeholder="IT12345678"
                     icon="bi bi-credit-card-2-front-fill"
+                    value={formData.itNumber}
+                    onChange={handleChange}
+                    error={fieldErrors.itNumber}
                   />
                   <InputField
                     label="Full Name"
                     name="fullName"
                     placeholder="John Michael Doe"
                     icon="bi bi-person-fill"
+                    value={formData.fullName}
+                    onChange={handleChange}
+                    error={fieldErrors.fullName}
                   />
                   <InputField
                     label="Email Address"
@@ -221,35 +269,40 @@ const StudentRegistration = () => {
                     type="email"
                     placeholder="john.doe@university.edu"
                     icon="bi bi-envelope-fill"
+                    value={formData.email}
+                    onChange={handleChange}
+                    error={fieldErrors.email}
                   />
                   <InputField
                     label="Phone Number"
                     name="phone"
-                    placeholder="+94 77 123 4567"
+                    placeholder="0771234567"
                     icon="bi bi-telephone-fill"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    error={fieldErrors.phone}
                   />
                 </div>
 
                 {/* Right Column */}
                 <div className="space-y-4">
                   {/* Password Field */}
-                  <div className="mb-4 group">
+                  <div className="mb-4">
                     <label className="block text-gray-700 text-sm font-medium mb-2">
                       Password <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i className={`bi bi-lock-fill text-gray-400 text-sm transition-colors duration-200 group-focus-within:text-blue-500 ${touched.password && errors.password ? 'text-red-400' : ''}`}></i>
+                        <i className="bi bi-lock-fill text-gray-400 text-sm"></i>
                       </div>
                       <input
                         type={showPassword ? "text" : "password"}
                         name="password"
                         value={formData.password}
                         onChange={handleChange}
-                        onBlur={() => handleBlur('password')}
                         placeholder="Create a strong password"
                         className={`w-full pl-9 pr-9 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
-                          touched.password && errors.password ? 'border-red-400 focus:border-red-400 focus:ring-red-500/20' : 'border-gray-200 hover:border-gray-300'
+                          fieldErrors.password ? 'border-red-400' : 'border-gray-200 hover:border-gray-300'
                         }`}
                       />
                       <button
@@ -260,43 +313,28 @@ const StudentRegistration = () => {
                         <i className={showPassword ? "bi bi-eye-slash text-sm" : "bi bi-eye text-sm"}></i>
                       </button>
                     </div>
-                    {touched.password && errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
-                    {!errors.password && formData.password && (
-                      <div className="mt-2 flex gap-3 text-xs flex-wrap">
-                        <span className={`flex items-center gap-1 ${formData.password.length >= 8 ? 'text-green-600' : 'text-gray-400'}`}>
-                          <i className="bi bi-check-circle-fill text-xs"></i> 8+ chars
-                        </span>
-                        <span className={`flex items-center gap-1 ${/(?=.*[A-Z])/.test(formData.password) ? 'text-green-600' : 'text-gray-400'}`}>
-                          <i className="bi bi-check-circle-fill text-xs"></i> Uppercase
-                        </span>
-                        <span className={`flex items-center gap-1 ${/(?=.*[a-z])/.test(formData.password) ? 'text-green-600' : 'text-gray-400'}`}>
-                          <i className="bi bi-check-circle-fill text-xs"></i> Lowercase
-                        </span>
-                        <span className={`flex items-center gap-1 ${/(?=.*[0-9])/.test(formData.password) ? 'text-green-600' : 'text-gray-400'}`}>
-                          <i className="bi bi-check-circle-fill text-xs"></i> Number
-                        </span>
-                      </div>
+                    {fieldErrors.password && (
+                      <p className="text-red-500 text-xs mt-1">{fieldErrors.password}</p>
                     )}
                   </div>
 
                   {/* Confirm Password Field */}
-                  <div className="mb-4 group">
+                  <div className="mb-4">
                     <label className="block text-gray-700 text-sm font-medium mb-2">
                       Confirm Password <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i className={`bi bi-lock-fill text-gray-400 text-sm transition-colors duration-200 group-focus-within:text-blue-500 ${touched.confirmPassword && errors.confirmPassword ? 'text-red-400' : ''}`}></i>
+                        <i className="bi bi-lock-fill text-gray-400 text-sm"></i>
                       </div>
                       <input
                         type={showConfirmPassword ? "text" : "password"}
                         name="confirmPassword"
                         value={formData.confirmPassword}
                         onChange={handleChange}
-                        onBlur={() => handleBlur('confirmPassword')}
                         placeholder="Confirm your password"
                         className={`w-full pl-9 pr-9 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
-                          touched.confirmPassword && errors.confirmPassword ? 'border-red-400 focus:border-red-400 focus:ring-red-500/20' : 'border-gray-200 hover:border-gray-300'
+                          fieldErrors.confirmPassword ? 'border-red-400' : 'border-gray-200 hover:border-gray-300'
                         }`}
                       />
                       <button
@@ -307,11 +345,8 @@ const StudentRegistration = () => {
                         <i className={showConfirmPassword ? "bi bi-eye-slash text-sm" : "bi bi-eye text-sm"}></i>
                       </button>
                     </div>
-                    {touched.confirmPassword && errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>}
-                    {formData.confirmPassword && !errors.confirmPassword && formData.password === formData.confirmPassword && (
-                      <p className="text-green-600 text-xs mt-1 flex items-center gap-1">
-                        <i className="bi bi-check-circle-fill text-xs"></i> Passwords match
-                      </p>
+                    {fieldErrors.confirmPassword && (
+                      <p className="text-red-500 text-xs mt-1">{fieldErrors.confirmPassword}</p>
                     )}
                   </div>
                 </div>
@@ -322,7 +357,7 @@ const StudentRegistration = () => {
                 <label className="block text-gray-700 text-sm font-medium mb-3">
                   Department / Faculty <span className="text-red-500">*</span>
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {departments.map((dept) => (
                     <label
                       key={dept.value}
@@ -369,21 +404,22 @@ const StudentRegistration = () => {
                 </label>
                 <div className="relative">
                   <div className="absolute top-2.5 left-3 pointer-events-none">
-                    <i className={`bi bi-geo-alt-fill text-gray-400 text-sm ${touched.address && errors.address ? 'text-red-400' : ''}`}></i>
+                    <i className="bi bi-geo-alt-fill text-gray-400 text-sm"></i>
                   </div>
                   <textarea
                     name="address"
                     value={formData.address}
                     onChange={handleChange}
-                    onBlur={() => handleBlur('address')}
                     rows="3"
                     placeholder="Enter your complete residential address"
                     className={`w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
-                      touched.address && errors.address ? 'border-red-400 focus:border-red-400 focus:ring-red-500/20' : 'border-gray-200 hover:border-gray-300'
+                      fieldErrors.address ? 'border-red-400' : 'border-gray-200 hover:border-gray-300'
                     }`}
                   />
                 </div>
-                {touched.address && errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
+                {fieldErrors.address && (
+                  <p className="text-red-500 text-xs mt-1">{fieldErrors.address}</p>
+                )}
               </div>
 
               {/* Profile Photo Upload */}
@@ -409,6 +445,7 @@ const StudentRegistration = () => {
                         onClick={() => {
                           setFormData(prev => ({ ...prev, profilePhoto: null }));
                           setPhotoPreview(null);
+                          setFieldErrors(prev => ({ ...prev, profilePhoto: '' }));
                         }}
                         className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg hover:bg-red-600 transition-all"
                       >
@@ -424,7 +461,6 @@ const StudentRegistration = () => {
                       name="profilePhoto"
                       accept="image/jpeg,image/png,image/jpg"
                       onChange={handleChange}
-                      onBlur={() => handleBlur('profilePhoto')}
                       className="hidden"
                       id="profilePhotoInput"
                     />
@@ -436,8 +472,8 @@ const StudentRegistration = () => {
                       Choose Photo
                     </label>
                     <p className="text-xs text-gray-400 mt-2">JPG, JPEG or PNG • Max 5MB</p>
-                    {touched.profilePhoto && errors.profilePhoto && (
-                      <p className="text-red-500 text-xs mt-1">{errors.profilePhoto}</p>
+                    {fieldErrors.profilePhoto && (
+                      <p className="text-red-500 text-xs mt-1">{fieldErrors.profilePhoto}</p>
                     )}
                   </div>
                 </div>

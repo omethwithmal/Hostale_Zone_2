@@ -16,6 +16,7 @@ const LeaveRequest = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null); // 'success', 'error', null
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -29,16 +30,55 @@ const LeaveRequest = () => {
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitStatus(null);
+    setErrorMessage('');
     
-    // Simulate API call
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      console.log('Form Data Submitted:', formData);
-      setSubmitStatus('success');
-      // Optionally reset form after successful submission
-      // setFormData(initialFormData);
-    } catch (error) {
+    // Date validation
+    if (new Date(formData.startDate) > new Date(formData.endDate)) {
       setSubmitStatus('error');
+      setErrorMessage('End date must be after start date');
+      setIsSubmitting(false);
+      return;
+    }
+    
+    try {
+      // Backend එකට API call එක
+      const response = await fetch('http://localhost:5000/leaverequests/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        setSubmitStatus('success');
+        // Form එක reset කිරීම
+        setFormData({
+          studentName: '',
+          studentItNumber: '',
+          roomNumber: '',
+          block: '',
+          department: '',
+          contactNumber: '',
+          email: '',
+          startDate: '',
+          endDate: '',
+          reason: ''
+        });
+        // Success message එක console එකට log කිරීම
+        console.log('Leave Request ID:', data.leaveRequestId);
+        console.log('Success Message:', data.message);
+      } else {
+        throw new Error(data.error || 'Failed to submit leave request');
+      }
+      
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      setSubmitStatus('error');
+      setErrorMessage(error.message || 'Failed to submit leave request. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -250,22 +290,33 @@ const LeaveRequest = () => {
                 )}
               </button>
 
-              {/* Success/Error Messages */}
+              {/* Success Message */}
               {submitStatus === 'success' && (
-                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-green-700">Leave request submitted successfully!</span>
+                <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-green-700 font-medium">Leave request submitted successfully!</span>
+                  </div>
+                  <p className="text-green-600 text-sm mt-1 ml-7">
+                    Your request has been received and is pending review.
+                  </p>
                 </div>
               )}
               
+              {/* Error Message */}
               {submitStatus === 'error' && (
-                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
-                  <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  <span className="text-red-700">Submission failed. Please try again.</span>
+                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span className="text-red-700 font-medium">Submission Failed</span>
+                  </div>
+                  <p className="text-red-600 text-sm mt-1 ml-7">
+                    {errorMessage || 'Please check your connection and try again.'}
+                  </p>
                 </div>
               )}
             </div>
