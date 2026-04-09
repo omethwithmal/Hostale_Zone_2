@@ -17,6 +17,7 @@ import RoomTransferRequest from "./components/RoomTransferRequest ADMIN/RoomTran
 import RoomManagementDashboard from "./components/RoomManagementDashboard/RoomManagementDashboard";
 import RoomManageMentNavebar from "./components/RoomManageMentNavebar/RoomManageMentNavebar";
 import RoomManagementSidebar from "./components/RoomManageMentNavebar/RoomManagementSidebar";
+import GoogleSheetTable from "./components/Attendance/GoogleSheetTable";
 
 // Ranga
 import R_AdminDashboard from "./components/RANGA/R_AdminDashboard";
@@ -80,6 +81,7 @@ function App() {
         <Route path="/room-change-request" element={<RoomChangeRequest />} />
         <Route path="/RoomDetailsForm" element={<RoomDetailsForm />} />
         <Route path="/RoomTransferRequest" element={<RoomTransferRequest />} />
+        <Route path="/GoogleSheetTable" element={<GoogleSheetTable />} />
         <Route
           path="/RoomManagementDashboard"
           element={<RoomManagementDashboard />}
@@ -92,6 +94,9 @@ function App() {
           path="/RoomManagementSidebar"
           element={<RoomManagementSidebar />}
         />
+
+
+
 
         {/* Ranga routes */}
         <Route path="/R_AdminDashboard" element={<R_AdminDashboard />} />
