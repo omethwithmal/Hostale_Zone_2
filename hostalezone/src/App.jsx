@@ -17,6 +17,8 @@ import RoomTransferRequest from "./components/RoomTransferRequest ADMIN/RoomTran
 import RoomManagementDashboard from "./components/RoomManagementDashboard/RoomManagementDashboard";
 import RoomManageMentNavebar from "./components/RoomManageMentNavebar/RoomManageMentNavebar";
 import RoomManagementSidebar from "./components/RoomManageMentNavebar/RoomManagementSidebar";
+import GoogleSheetTable from "./components/Attendance/GoogleSheetTable";
+
 
 
 //Ranga
@@ -79,6 +81,8 @@ function App() {
         <Route path="/RoomManagementDashboard" element={<RoomManagementDashboard />} />
         <Route path="/RoomManageMentNavebar" element={<RoomManageMentNavebar />} />
         <Route path="/RoomManagementSidebar" element={<RoomManagementSidebar />} />
+        <Route path="/GoogleSheetTable" element={<GoogleSheetTable />} />
+
 
         //Ranga
        <Route path="/R_AdminDashboard" element={<R_AdminDashboard />} />
