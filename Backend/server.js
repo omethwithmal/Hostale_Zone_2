@@ -32,8 +32,8 @@ app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Static uploads folder
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// CHANGED: uploads path kept as "Uploads" to match your folder name in Backend
+app.use("/uploads", express.static(path.join(__dirname, "Uploads")));
 
 // =========================
 // MONGODB CONNECTION
@@ -51,6 +51,10 @@ app.use("/roomdetails", roomdetailsRouter);
 
 const roomchangeRouter = require("./Roomchangerequest/routes/roomchange");
 app.use("/roomchange", roomchangeRouter);
+
+// CHANGED: added complaint router import + route
+const complaintRouter = require("./ComplaintManagement/routes/complaint");
+app.use("/api/complaints", complaintRouter);
 
 // Test route
 app.get("/", (req, res) => {
@@ -78,7 +82,9 @@ app.use((req, res) => {
 // =========================
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port: ${PORT}`);
-  console.log(`📁 Uploads directory: ${path.join(__dirname, "uploads")}`);
+
+  // CHANGED: uploads log path updated to "Uploads"
+  console.log(`📁 Uploads directory: ${path.join(__dirname, "Uploads")}`);
 });
 
 //abc
