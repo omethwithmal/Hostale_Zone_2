@@ -49,4 +49,5 @@ router.get("/admin/students/:studentId/summary", protectAdmin, getStudentSummary
 router.get("/admin/reports", protectAdmin, getAdminReports);
 router.post("/admin/reminders/overdue", protectAdmin, sendOverdueReminders);
 
+app.use("/payment", require("./payment/routes/FeeRoute"));
 module.exports = router;
