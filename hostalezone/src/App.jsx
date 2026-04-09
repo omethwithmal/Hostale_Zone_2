@@ -26,7 +26,7 @@ import SignIn from "./components/Auth/SignIn";
 import StudentProfile from "./components/Auth/StudentProfile";
 import LeaveRequest from "./components/RANGA/LeaveRequest";
 
-// CHANGED: complaint module imports added
+// CHANGED: Hasinika's complaint module imports added
 import Complaints from "./components/complain/complain";
 import AdminPanel from "./components/complain/AdminPanel";
 import Dashboard from "./components/complain/Dashboard";
@@ -69,6 +69,13 @@ function App() {
       <Routes>
         {/* Main website routes */}
         <Route path="/" element={<Home />} />
+
+        {/* CHANGED: added separate routes for navbar links */}
+        <Route path="/rooms" element={<Rooms />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/rules" element={<Rules />} />
+
         <Route path="/external" element={<ExternalView />} />
         <Route path="/room-change-request" element={<RoomChangeRequest />} />
         <Route path="/RoomDetailsForm" element={<RoomDetailsForm />} />
@@ -100,7 +107,7 @@ function App() {
         <Route path="/SignIn" element={<SignIn />} />
         <Route path="/LeaveRequest" element={<LeaveRequest />} />
 
-        {/* CHANGED: Hansica complaint module routes added */}
+        {/* CHANGED: Hasinika complaint module routes added */}
         <Route path="/complaints" element={<Complaints />} />
         <Route path="/new-complaint" element={<NewComplaint />} />
         <Route path="/complaint-dashboard" element={<Dashboard />} />
