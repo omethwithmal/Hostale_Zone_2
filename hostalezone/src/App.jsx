@@ -34,8 +34,7 @@ import Dashboard from "./components/complain/Dashboard";
 import NewComplaint from "./components/complain/NewComplaint";
 import ComplaintHome from "./components/complain/Home";
 
-//payment
-import Payment from "./components/payment/payment";
+
 
 
 // Home Page Component
