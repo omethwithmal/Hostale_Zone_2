@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
+import axios from 'axios';
 import {
   Users, UserCheck, UserX, GraduationCap, Plus, Edit, Trash2, Search,
   Download, Moon, Sun, Calendar, Home, FileText,
   ChevronRight, ChevronLeft, X, AlertCircle, CheckCircle,
   TrendingUp, Bell, UserPlus,
   Mail, Phone, MapPin, Hash, BookOpen, Home as HomeIcon, Grid,
-  Sparkles, Eye, UserCircle
+  Sparkles, Eye, UserCircle, RefreshCw
 } from 'lucide-react';
 import LeaveManagement from './R_AdminLeaveManagement';
 
@@ -23,80 +24,177 @@ const StudentManagementDashboard = () => {
   const [notification, setNotification] = useState({ show: false, message: '', type: '' });
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // ========== STUDENT DATA ==========
-  const [students, setStudents] = useState([
-    {
-      id: '1',
-      itNumber: 'IT2023001',
-      fullName: 'Amal Perera',
-      email: 'amal.perera@example.com',
-      phone: '+94 71 234 5678',
-      department: 'Computer Science',
-      address: 'No. 123, Galle Road, Colombo 03',
-      profilePhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop',
-      roomNumber: 'A-101',
-      block: 'Tower A',
-      memberSince: '2023-01-15',
-      status: 'active'
-    },
-    {
-      id: '2',
-      itNumber: 'IT2023002',
-      fullName: 'Nimali Fernando',
-      email: 'nimali.fernando@example.com',
-      phone: '+94 72 345 6789',
-      department: 'Information Systems',
-      address: 'No. 45, Kandy Road, Kandy',
-      profilePhoto: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop',
-      roomNumber: 'B-202',
-      block: 'Tower B',
-      memberSince: '2023-02-20',
-      status: 'active'
-    },
-    {
-      id: '3',
-      itNumber: 'IT2023003',
-      fullName: 'Kasun Bandara',
-      email: 'kasun.bandara@example.com',
-      phone: '+94 73 456 7890',
-      department: 'Software Engineering',
-      address: 'No. 78, Main Street, Galle',
-      profilePhoto: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop',
-      roomNumber: 'C-303',
-      block: 'Tower C',
-      memberSince: '2023-03-10',
-      status: 'blocked'
-    },
-    {
-      id: '4',
-      itNumber: 'IT2023004',
-      fullName: 'Tharushi Jayawardena',
-      email: 'tharushi.j@example.com',
-      phone: '+94 74 567 8901',
-      department: 'Computer Science',
-      address: 'No. 12, Hospital Road, Jaffna',
-      profilePhoto: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop',
-      roomNumber: 'A-104',
-      block: 'Tower A',
-      memberSince: '2023-04-05',
-      status: 'active'
-    },
-    {
-      id: '5',
-      itNumber: 'IT2023005',
-      fullName: 'Ruwan Wickramasinghe',
-      email: 'ruwan.w@example.com',
-      phone: '+94 75 678 9012',
-      department: 'Software Engineering',
-      address: 'No. 234, Negombo Road, Negombo',
-      profilePhoto: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop',
-      roomNumber: 'B-205',
-      block: 'Tower B',
-      memberSince: '2023-05-12',
-      status: 'active'
+  // ========== STUDENT DATA FROM BACKEND ==========
+  const [students, setStudents] = useState([]);
+
+  // ========== FETCH STUDENTS FROM BACKEND ==========
+  const fetchStudents = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:5000/api/auth/users', {
+        withCredentials: true,
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (response.data.success) {
+        // Transform backend data to match frontend format
+        const formattedStudents = response.data.users.map((user, index) => ({
+          id: user._id || index.toString(),
+          itNumber: user.itNumber,
+          fullName: user.fullName,
+          email: user.email,
+          phone: user.phone,
+          department: user.department,
+          address: user.address,
+          profilePhoto: user.profilePhoto || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop',
+          roomNumber: user.roomNumber || 'Not Assigned',
+          block: user.block || 'Tower A',
+          memberSince: user.createdAt ? new Date(user.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          status: user.isActive ? 'active' : 'blocked',
+          userType: user.userType
+        }));
+        setStudents(formattedStudents);
+        showNotification('Students loaded successfully!', 'success');
+      }
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      showNotification('Failed to load students from server', 'error');
+      // Load sample data if backend fails
+      loadSampleData();
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
+
+  // ========== SAMPLE DATA (Fallback) ==========
+  const loadSampleData = () => {
+    const sampleStudents = [
+      {
+        id: '1',
+        itNumber: 'IT2023001',
+        fullName: 'Amal Perera',
+        email: 'amal.perera@example.com',
+        phone: '+94 71 234 5678',
+        department: 'Computer Science',
+        address: 'No. 123, Galle Road, Colombo 03',
+        profilePhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop',
+        roomNumber: 'A-101',
+        block: 'Tower A',
+        memberSince: '2023-01-15',
+        status: 'active'
+      },
+      {
+        id: '2',
+        itNumber: 'IT2023002',
+        fullName: 'Nimali Fernando',
+        email: 'nimali.fernando@example.com',
+        phone: '+94 72 345 6789',
+        department: 'Information Systems',
+        address: 'No. 45, Kandy Road, Kandy',
+        profilePhoto: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop',
+        roomNumber: 'B-202',
+        block: 'Tower B',
+        memberSince: '2023-02-20',
+        status: 'active'
+      },
+      {
+        id: '3',
+        itNumber: 'IT2023003',
+        fullName: 'Kasun Bandara',
+        email: 'kasun.bandara@example.com',
+        phone: '+94 73 456 7890',
+        department: 'Software Engineering',
+        address: 'No. 78, Main Street, Galle',
+        profilePhoto: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop',
+        roomNumber: 'C-303',
+        block: 'Tower C',
+        memberSince: '2023-03-10',
+        status: 'blocked'
+      }
+    ];
+    setStudents(sampleStudents);
+  };
+
+  // ========== REGISTER STUDENT TO BACKEND ==========
+  const registerStudent = async (studentData) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post('http://localhost:5000/api/auth/register', studentData, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (response.data.success) {
+        showNotification('Student registered successfully!', 'success');
+        fetchStudents(); // Refresh the list
+        return true;
+      }
+    } catch (error) {
+      console.error('Error registering student:', error);
+      showNotification(error.response?.data?.message || 'Registration failed', 'error');
+      return false;
+    }
+  };
+
+  // ========== UPDATE STUDENT IN BACKEND ==========
+  const updateStudent = async (id, studentData) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.put(`http://localhost:5000/api/auth/user/${id}`, studentData, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (response.data.success) {
+        showNotification('Student updated successfully!', 'success');
+        fetchStudents(); // Refresh the list
+        return true;
+      }
+    } catch (error) {
+      console.error('Error updating student:', error);
+      showNotification(error.response?.data?.message || 'Update failed', 'error');
+      return false;
+    }
+  };
+
+  // ========== DELETE STUDENT FROM BACKEND ==========
+  const deleteStudent = async (id) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.delete(`http://localhost:5000/api/auth/user/${id}`, {
+        withCredentials: true,
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (response.data.success) {
+        showNotification('Student deleted successfully!', 'success');
+        fetchStudents(); // Refresh the list
+        return true;
+      }
+    } catch (error) {
+      console.error('Error deleting student:', error);
+      showNotification(error.response?.data?.message || 'Delete failed', 'error');
+      return false;
+    }
+  };
+
+  // ========== INITIAL FETCH ==========
+  useEffect(() => {
+    fetchStudents();
+  }, []);
 
   const [formData, setFormData] = useState({
     itNumber: '', fullName: '', email: '', phone: '', department: '',
@@ -112,9 +210,9 @@ const StudentManagementDashboard = () => {
 
   // ========== FILTERED STUDENTS ==========
   const filteredStudents = students.filter(student => {
-    const matchesSearch = student.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          student.itNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          student.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = student.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          student.itNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          student.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDepartment = departmentFilter ? student.department === departmentFilter : true;
     const matchesStatus = statusFilter ? student.status === statusFilter : true;
     return matchesSearch && matchesDepartment && matchesStatus;
@@ -126,6 +224,7 @@ const StudentManagementDashboard = () => {
   };
 
   const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  
   const resetForm = () => {
     setFormData({
       itNumber: '', fullName: '', email: '', phone: '', department: '',
@@ -135,18 +234,20 @@ const StudentManagementDashboard = () => {
     setEditingId(null);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    let success = false;
+    
     if (editingId) {
-      setStudents(students.map(s => s.id === editingId ? { ...formData, id: editingId } : s));
-      showNotification('Student updated successfully!', 'success');
+      success = await updateStudent(editingId, formData);
     } else {
-      const newId = (Math.max(...students.map(s => parseInt(s.id)), 0) + 1).toString();
-      setStudents([...students, { ...formData, id: newId }]);
-      showNotification('Student registered successfully!', 'success');
+      success = await registerStudent(formData);
     }
-    resetForm();
-    setShowRegisterForm(false);
+    
+    if (success) {
+      resetForm();
+      setShowRegisterForm(false);
+    }
   };
 
   const handleEdit = (student) => {
@@ -155,10 +256,9 @@ const StudentManagementDashboard = () => {
     setShowRegisterForm(true);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this student?')) {
-      setStudents(students.filter(s => s.id !== id));
-      showNotification('Student deleted successfully!', 'error');
+      await deleteStudent(id);
     }
   };
 
@@ -237,6 +337,7 @@ const StudentManagementDashboard = () => {
           onClick={() => { 
             setActiveSection('students'); 
             setShowRegisterForm(false); 
+            fetchStudents();
           }} 
           collapsed={sidebarCollapsed} 
         />
@@ -372,64 +473,79 @@ const StudentManagementDashboard = () => {
             <option value="active">Active</option>
             <option value="blocked">Blocked</option>
           </select>
+          <button onClick={fetchStudents} className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all duration-300 ${darkMode ? 'border-gray-600 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'}`}>
+            <RefreshCw size={18} /> Refresh
+          </button>
         </div>
         <button onClick={exportToExcel} className="flex items-center gap-2 px-5 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-all duration-300 hover:scale-105 shadow-lg shadow-blue-500/25">
           <Download size={18} /> Export Excel
         </button>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className={`${darkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
-            <tr>
-              <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider">Student</th>
-              <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider">ID</th>
-              <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider">Contact</th>
-              <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider">Department</th>
-              <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider">Location</th>
-              <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider">Status</th>
-              <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {filteredStudents.map(student => (
-              <tr key={student.id} className="group hover:bg-blue-50/50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer" onClick={() => viewStudentDetails(student)}>
-                <td className="px-5 py-4">
-                  <div className="flex items-center gap-3">
-                    <img src={student.profilePhoto} alt={student.fullName} className="w-10 h-10 rounded-full object-cover ring-2 ring-blue-500/20" />
-                    <div>
-                      <p className="font-medium">{student.fullName}</p>
-                      <p className="text-xs text-gray-400">Since {new Date(student.memberSince).toLocaleDateString()}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-5 py-4 font-mono text-sm">{student.itNumber}</td>
-                <td className="px-5 py-4">
-                  <p className="text-sm">{student.email}</p>
-                  <p className="text-xs text-gray-400">{student.phone}</p>
-                </td>
-                <td className="px-5 py-4">{student.department}</td>
-                <td className="px-5 py-4">{student.roomNumber} / {student.block}</td>
-                <td className="px-5 py-4">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    student.status === 'active' 
-                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
-                      : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                  }`}>
-                    {student.status === 'active' ? 'Active' : 'Blocked'}
-                  </span>
-                </td>
-                <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex gap-2">
-                    <button onClick={() => handleEdit(student)} className="p-2 rounded-lg text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all duration-300"><Edit size={16} /></button>
-                    <button onClick={() => handleDelete(student.id)} className="p-2 rounded-lg text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 transition-all duration-300"><Trash2 size={16} /></button>
-                    <button onClick={() => viewStudentDetails(student)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-300"><Eye size={16} /></button>
-                  </div>
-                </td>
+      {loading ? (
+        <div className="p-12 text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <p className="mt-2 text-gray-500">Loading students...</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className={`${darkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
+              <tr>
+                <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider">Student</th>
+                <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider">ID</th>
+                <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider">Contact</th>
+                <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider">Department</th>
+                <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider">Location</th>
+                <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider">Status</th>
+                <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              {filteredStudents.map(student => (
+                <tr key={student.id} className="group hover:bg-blue-50/50 dark:hover:bg-gray-700/50 transition-all duration-200 cursor-pointer" onClick={() => viewStudentDetails(student)}>
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <img src={student.profilePhoto} alt={student.fullName} className="w-10 h-10 rounded-full object-cover ring-2 ring-blue-500/20" />
+                      <div>
+                        <p className="font-medium">{student.fullName}</p>
+                        <p className="text-xs text-gray-400">Since {new Date(student.memberSince).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4 font-mono text-sm">{student.itNumber}</td>
+                  <td className="px-5 py-4">
+                    <p className="text-sm">{student.email}</p>
+                    <p className="text-xs text-gray-400">{student.phone}</p>
+                  </td>
+                  <td className="px-5 py-4">{student.department}</td>
+                  <td className="px-5 py-4">{student.roomNumber} / {student.block}</td>
+                  <td className="px-5 py-4">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      student.status === 'active' 
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                    }`}>
+                      {student.status === 'active' ? 'Active' : 'Blocked'}
+                    </span>
+                  </td>
+                  <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex gap-2">
+                      <button onClick={() => handleEdit(student)} className="p-2 rounded-lg text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all duration-300"><Edit size={16} /></button>
+                      <button onClick={() => handleDelete(student.id)} className="p-2 rounded-lg text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 transition-all duration-300"><Trash2 size={16} /></button>
+                      <button onClick={() => viewStudentDetails(student)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-300"><Eye size={16} /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {filteredStudents.length === 0 && (
+            <div className="p-12 text-center">
+              <p className="text-gray-500">No students found</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 
@@ -515,7 +631,7 @@ const StudentManagementDashboard = () => {
                 </h2>
                 <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-1 flex items-center gap-1`}>
                   <Sparkles size={12} className="text-blue-500" />
-                  {activeSection === 'students' ? 'Manage and view all student information' : 'Track and manage student leave requests'}
+                  {activeSection === 'students' ? 'Manage and view all student information from database' : 'Track and manage student leave requests'}
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -539,8 +655,8 @@ const StudentManagementDashboard = () => {
                 <div className="space-y-6">
                   {/* Stats Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                    <StatCard title="Total Students" value={totalStudents} icon={Users} trend="12" subtitle="+3 this week" />
-                    <StatCard title="Active Accounts" value={activeAccounts} icon={UserCheck} trend="8" subtitle="87% of total" />
+                    <StatCard title="Total Students" value={totalStudents} icon={Users} trend="12" subtitle="From database" />
+                    <StatCard title="Active Accounts" value={activeAccounts} icon={UserCheck} trend="8" subtitle={`${Math.round((activeAccounts/totalStudents)*100)}% of total`} />
                     <StatCard title="Blocked Accounts" value={blockedAccounts} icon={UserX} subtitle="Needs review" />
                     <StatCard title="Departments" value={departments.length} icon={GraduationCap} subtitle="Active programs" />
                   </div>

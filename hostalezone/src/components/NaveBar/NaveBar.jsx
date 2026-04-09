@@ -1,12 +1,12 @@
 // Navbar.jsx
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   HomeIcon, 
   InformationCircleIcon, 
   PhoneIcon, 
   BuildingOfficeIcon, 
   DocumentTextIcon, 
-  UserCircleIcon, 
   ArrowRightOnRectangleIcon,
   ArrowLeftOnRectangleIcon,
   XMarkIcon,
@@ -15,6 +15,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 const Navbar = () => {
+  const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeItem, setActiveItem] = useState('Home');
@@ -34,20 +35,34 @@ const Navbar = () => {
   };
 
   const navItems = [
-    { name: 'Home', icon: <HomeIcon className="w-5 h-5" /> },
-    { name: 'About', icon: <InformationCircleIcon className="w-5 h-5" /> },
-    { name: 'Contact', icon: <PhoneIcon className="w-5 h-5" /> },
-    { name: 'Rooms', icon: <BuildingOfficeIcon className="w-5 h-5" />, badge: 3 },
-    { name: 'Rules', icon: <DocumentTextIcon className="w-5 h-5" /> },
+    { name: 'Home', icon: <HomeIcon className="w-5 h-5" />, path: '/' },
+    { name: 'About', icon: <InformationCircleIcon className="w-5 h-5" />, path: '/about' },
+    { name: 'Contact', icon: <PhoneIcon className="w-5 h-5" />, path: '/contact' },
+    { name: 'Rooms', icon: <BuildingOfficeIcon className="w-5 h-5" />, path: '/rooms', badge: 3 },
+    { name: 'Rules', icon: <DocumentTextIcon className="w-5 h-5" />, path: '/rules' },
   ];
 
-  const toggleLogin = () => {
-    setIsLoggedIn(!isLoggedIn);
+  // Check login status from localStorage on mount
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    setIsLoggedIn(!!token);
+  }, []);
+
+  const handleLoginClick = () => {
+    navigate('/SignIn');
   };
 
-  const handleNavClick = (itemName) => {
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsLoggedIn(false);
+    navigate('/');
+  };
+
+  const handleNavClick = (itemName, path) => {
     setActiveItem(itemName);
     setIsMobileMenuOpen(false);
+    navigate(path);
   };
 
   // Handle scroll effect
@@ -84,7 +99,7 @@ const Navbar = () => {
           <div className="flex items-center">
             <div 
               className="flex items-center space-x-3 cursor-pointer group"
-              onClick={() => handleNavClick('Home')}
+              onClick={() => handleNavClick('Home', '/')}
             >
               {/* Enhanced logo with gradient border */}
               <div className="relative">
@@ -119,7 +134,7 @@ const Navbar = () => {
             {navItems.map((item) => (
               <div key={item.name} className="relative">
                 <button
-                  onClick={() => handleNavClick(item.name)}
+                  onClick={() => handleNavClick(item.name, item.path)}
                   className={`flex items-center space-x-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 relative ${
                     activeItem === item.name 
                       ? 'transform scale-105' 
@@ -147,47 +162,38 @@ const Navbar = () => {
               </div>
             ))}
             
-            {/* Profile Button */}
-            <div className="relative ml-4">
-              <button
-                onClick={() => handleNavClick('Profile')}
-                className={`flex items-center space-x-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 ${
-                  activeItem === 'Profile' ? 'ring-2 ring-blue-200' : ''
-                }`}
-                style={{
-                  color: activeItem === 'Profile' ? colors.secondary : colors.text,
-                  backgroundColor: activeItem === 'Profile' ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-                }}
-              >
-                <UserCircleIcon className="w-5 h-5" />
-                <span className="font-semibold">Profile</span>
-              </button>
-            </div>
-            
             {/* Login/Logout Button with animated gradient */}
-            <button
-              onClick={toggleLogin}
-              className="ml-6 group relative overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-300"></div>
-              <div className="relative flex items-center space-x-2 px-6 py-2.5 rounded-xl font-semibold transition-all duration-300 transform group-hover:scale-105"
-                   style={{ 
-                     backgroundColor: colors.secondary,
-                     color: colors.textLight
-                   }}>
-                {isLoggedIn ? (
-                  <>
-                    <ArrowLeftOnRectangleIcon className="w-5 h-5" />
-                    <span>Logout</span>
-                  </>
-                ) : (
-                  <>
-                    <ArrowRightOnRectangleIcon className="w-5 h-5" />
-                    <span>Login</span>
-                  </>
-                )}
-              </div>
-            </button>
+            {isLoggedIn ? (
+              <button
+                onClick={handleLogout}
+                className="ml-6 group relative overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-red-600 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-300"></div>
+                <div className="relative flex items-center space-x-2 px-6 py-2.5 rounded-xl font-semibold transition-all duration-300 transform group-hover:scale-105"
+                     style={{ 
+                       backgroundColor: '#DC2626',
+                       color: colors.textLight
+                     }}>
+                  <ArrowLeftOnRectangleIcon className="w-5 h-5" />
+                  <span>Logout</span>
+                </div>
+              </button>
+            ) : (
+              <button
+                onClick={handleLoginClick}
+                className="ml-6 group relative overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-300"></div>
+                <div className="relative flex items-center space-x-2 px-6 py-2.5 rounded-xl font-semibold transition-all duration-300 transform group-hover:scale-105"
+                     style={{ 
+                       backgroundColor: colors.secondary,
+                       color: colors.textLight
+                     }}>
+                  <ArrowRightOnRectangleIcon className="w-5 h-5" />
+                  <span>Login</span>
+                </div>
+              </button>
+            )}
           </div>
 
           {/* Mobile menu button with animated icon */}
@@ -232,7 +238,7 @@ const Navbar = () => {
             {navItems.map((item) => (
               <button
                 key={item.name}
-                onClick={() => handleNavClick(item.name)}
+                onClick={() => handleNavClick(item.name, item.path)}
                 className={`flex items-center justify-between space-x-3 px-4 py-4 my-1 rounded-xl transition-all duration-300 ${
                   activeItem === item.name ? 'bg-blue-50 transform scale-[1.02]' : ''
                 }`}
@@ -264,57 +270,33 @@ const Navbar = () => {
               </button>
             ))}
             
-            {/* Profile Button */}
-            <button
-              onClick={() => handleNavClick('Profile')}
-              className={`flex items-center justify-between space-x-3 px-4 py-4 my-1 rounded-xl transition-all duration-300 ${
-                activeItem === 'Profile' ? 'bg-blue-50 transform scale-[1.02]' : ''
-              }`}
-              style={{
-                borderLeft: activeItem === 'Profile' ? `4px solid ${colors.accent}` : '4px solid transparent',
-              }}
-            >
-              <div className="flex items-center space-x-3">
-                <div className={`p-2 rounded-lg ${
-                  activeItem === 'Profile' ? 'bg-blue-100' : 'bg-gray-100'
-                }`}>
-                  <UserCircleIcon className="w-5 h-5" style={{ 
-                    color: activeItem === 'Profile' ? colors.accent : colors.text 
-                  }} />
-                </div>
-                <span className={`font-semibold ${
-                  activeItem === 'Profile' ? 'text-blue-600' : 'text-gray-700'
-                }`}>
-                  Profile
-                </span>
-              </div>
-              <div className={`w-2 h-2 rounded-full ${
-                isLoggedIn ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'
-              }`}></div>
-            </button>
-            
-            {/* Login/Logout Button */}
+            {/* Login/Logout Button for Mobile */}
             <div className="mt-4 pt-4 border-t" style={{ borderColor: colors.border }}>
-              <button
-                onClick={toggleLogin}
-                className="w-full flex items-center justify-center space-x-3 px-4 py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-[1.02] shadow-md"
-                style={{ 
-                  background: `linear-gradient(135deg, ${colors.secondary}, ${colors.accent})`,
-                  color: colors.textLight
-                }}
-              >
-                {isLoggedIn ? (
-                  <>
-                    <ArrowLeftOnRectangleIcon className="w-5 h-5" />
-                    <span>Logout</span>
-                  </>
-                ) : (
-                  <>
-                    <ArrowRightOnRectangleIcon className="w-5 h-5" />
-                    <span>Login to Continue</span>
-                  </>
-                )}
-              </button>
+              {isLoggedIn ? (
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center justify-center space-x-3 px-4 py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-[1.02] shadow-md"
+                  style={{ 
+                    background: 'linear-gradient(135deg, #DC2626, #EF4444)',
+                    color: colors.textLight
+                  }}
+                >
+                  <ArrowLeftOnRectangleIcon className="w-5 h-5" />
+                  <span>Logout</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleLoginClick}
+                  className="w-full flex items-center justify-center space-x-3 px-4 py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-[1.02] shadow-md"
+                  style={{ 
+                    background: `linear-gradient(135deg, ${colors.secondary}, ${colors.accent})`,
+                    color: colors.textLight
+                  }}
+                >
+                  <ArrowRightOnRectangleIcon className="w-5 h-5" />
+                  <span>Login to Continue</span>
+                </button>
+              )}
               
               {/* Status Indicator */}
               <div className="mt-4 p-3 rounded-xl bg-gray-50">

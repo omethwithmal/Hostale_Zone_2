@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const path = require("path");
+const cookieParser = require('cookie-parser'); // Add this
 
 const app = express();
 
@@ -11,7 +12,7 @@ const app = express();
 // =========================
 const PORT = 5000;
 
-// 🔥 MongoDB Atlas Connection (PUT YOUR OWN LINK HERE)
+// MongoDB Atlas Connection
 const MONGO_URI =
   "mongodb://withmalwijesiri:12345ometh@cluster0-shard-00-00.yb9sm.mongodb.net:27017,cluster0-shard-00-01.yb9sm.mongodb.net:27017,cluster0-shard-00-02.yb9sm.mongodb.net:27017/RoomManagement?ssl=true&replicaSet=atlas-xw65gf-shard-0&authSource=admin&appName=Cluster0";
 
@@ -31,6 +32,7 @@ app.use(cors(corsOptions));
 // =========================
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser()); // Add cookie parser middleware
 
 // CHANGED: uploads path kept as "Uploads" to match your folder name in Backend
 app.use("/uploads", express.static(path.join(__dirname, "Uploads")));
@@ -55,6 +57,11 @@ app.use("/roomchange", roomchangeRouter);
 // CHANGED: added complaint router import + route
 const complaintRouter = require("./ComplaintManagement/routes/complaint");
 app.use("/api/complaints", complaintRouter);
+const leaverequestRouter = require("./LeaveRequest/routes/leaverequests"); 
+app.use("/leaverequests", leaverequestRouter);
+
+const loginSignRoutes = require("../Backend/LoginSignup/router");
+app.use("/api/auth", loginSignRoutes); // Changed path to avoid conflicts
 
 // Test route
 app.get("/", (req, res) => {
