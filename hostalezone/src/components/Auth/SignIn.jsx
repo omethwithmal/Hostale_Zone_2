@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios'; // Make sure to install axios: npm install axios
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -22,20 +23,152 @@ const SignIn = () => {
     { value: 'student', label: 'Student', icon: 'bi-mortarboard-fill', desc: 'Learning Platform' }
   ];
 
-  // 🎯 Email to Route mapping
-  const emailRoutes = {
-    'ometh@gmail.com': '/RoomManagementDashboard',
-    'ranga@gmail.com': '/R_AdminDashboard',
-    'hansika@gmail.com': '/R_AdminDashboard',
-    'angalee@gmail.com': '/R_AdminDashboard'
-  };
-
-  // 🎯 Valid Users (Frontend only - for testing)
-  const validUsers = {
+  // 🎯 Admin Users (Local authentication only)
+  const adminUsers = {
     'ometh@gmail.com': { password: '123456', fullName: 'Ometh', userType: 'admin' },
     'ranga@gmail.com': { password: '123456', fullName: 'Ranga', userType: 'admin' },
     'hansika@gmail.com': { password: '123456', fullName: 'Hansika', userType: 'admin' },
     'angalee@gmail.com': { password: '123456', fullName: 'Angalee', userType: 'admin' }
+  };
+
+  // 🎯 Email to Route mapping for Admins
+  const adminEmailRoutes = {
+    'ometh@gmail.com': '/RoomManagementDashboard',
+    'ranga@gmail.com': '/R_AdminDashboard',
+    'hansika@gmail.com': '/complaint-dashboard',
+    'angalee@gmail.com': '/R_AdminDashboard'
+  };
+
+  // 🎯 Function to determine redirect URL based on email and userType
+  const getRedirectUrl = (email, userType) => {
+    const normalizedEmail = email.toLowerCase().trim();
+    
+    // Admin routing based on email
+    if (userType === 'admin') {
+      if (adminEmailRoutes[normalizedEmail]) {
+        return adminEmailRoutes[normalizedEmail];
+      }
+      return '/admin-dashboard';
+    }
+    
+    // Student routing
+    return '/StudentProfile';
+  };
+
+  // 🎯 Admin Login (Local validation)
+  const handleAdminLogin = (email, password) => {
+    const normalizedEmail = email.toLowerCase().trim();
+    const admin = adminUsers[normalizedEmail];
+    
+    if (admin && admin.password === password) {
+      const userData = {
+        fullName: admin.fullName,
+        email: email,
+        userType: 'admin',
+        role: 'admin'
+      };
+      
+      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('token', 'mock-admin-token-123456');
+      
+      if (rememberMe) {
+        localStorage.setItem('rememberedEmail', email);
+      } else {
+        localStorage.removeItem('rememberedEmail');
+      }
+      
+      const redirectUrl = getRedirectUrl(email, 'admin');
+      alert(`Welcome ${admin.fullName}! Admin login successful.`);
+      navigate(redirectUrl);
+      return true;
+    }
+    return false;
+  };
+
+  // 🎯 Student Login (Backend API call)
+  const handleStudentLogin = async (email, password) => {
+    try {
+      // Replace with your actual backend API endpoint
+      const API_URL = 'http://localhost:5000/api/auth/login'; // Update with your backend URL
+      
+      const response = await axios.post(API_URL, {
+        email: email.toLowerCase().trim(),
+        password: password
+      });
+      
+      if (response.data.success || response.data.token) {
+        // Store student data from backend response
+        const studentData = {
+          fullName: response.data.fullName || response.data.name || 'Student',
+          email: email,
+          userType: 'student',
+          studentId: response.data.studentId || response.data.id,
+          token: response.data.token
+        };
+        
+        localStorage.setItem('user', JSON.stringify(studentData));
+        localStorage.setItem('token', response.data.token);
+        
+        if (rememberMe) {
+          localStorage.setItem('rememberedEmail', email);
+        } else {
+          localStorage.removeItem('rememberedEmail');
+        }
+        
+        alert(`Welcome ${studentData.fullName}! Student login successful.`);
+        navigate('/StudentProfile');
+        return true;
+      } else {
+        throw new Error(response.data.message || 'Invalid credentials');
+      }
+    } catch (error) {
+      console.error('Student login error:', error);
+      
+      if (error.response) {
+        // Server responded with error status
+        const errorMsg = error.response.data.message || 'Invalid email or password';
+        throw new Error(errorMsg);
+      } else if (error.request) {
+        // No response from server
+        throw new Error('Cannot connect to server. Please check your internet connection.');
+      } else {
+        // Other errors
+        throw new Error(error.message || 'Login failed. Please try again.');
+      }
+    }
+  };
+
+  // 🎯 Main submit handler
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setServerError('');
+
+    if (validateForm()) {
+      const { email, password, userType } = formData;
+      
+      try {
+        let loginSuccess = false;
+        
+        if (userType === 'admin') {
+          // Admin login using local validation
+          loginSuccess = handleAdminLogin(email, password);
+          if (!loginSuccess) {
+            setServerError('Invalid admin credentials. Please check your email and password.');
+          }
+        } else {
+          // Student login using backend API
+          await handleStudentLogin(email, password);
+          loginSuccess = true;
+        }
+        
+      } catch (error) {
+        setServerError(error.message || 'Login failed. Please try again.');
+        console.error('Login error:', error);
+      }
+    }
+    
+    setIsSubmitting(false);
   };
 
   const handleChange = (e) => {
@@ -73,70 +206,6 @@ const SignIn = () => {
 
     setErrors(newErrors);
     return isValid;
-  };
-
-  // 🎯 Function to determine redirect URL based on email
-  const getRedirectUrl = (email, userType) => {
-    const normalizedEmail = email.toLowerCase().trim();
-    
-    // Check for special email routes first
-    if (emailRoutes[normalizedEmail]) {
-      return emailRoutes[normalizedEmail];
-    }
-    
-    // Default role-based routing
-    if (userType === 'admin') {
-      return '/admin-dashboard';
-    }
-    
-    return '/StudentProfile';
-  };
-
-  // 🎯 Frontend only login - NO BACKEND CALL
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setServerError('');
-
-    if (validateForm()) {
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const normalizedEmail = formData.email.toLowerCase().trim();
-      const user = validUsers[normalizedEmail];
-      
-      // Check if user exists and password matches
-      if (user && user.password === formData.password) {
-        // Create mock user data
-        const mockUser = {
-          fullName: user.fullName,
-          email: formData.email,
-          userType: formData.userType
-        };
-        
-        // Store in localStorage
-        localStorage.setItem('user', JSON.stringify(mockUser));
-        localStorage.setItem('token', 'mock-token-123456');
-        
-        if (rememberMe) {
-          localStorage.setItem('rememberedEmail', formData.email);
-        } else {
-          localStorage.removeItem('rememberedEmail');
-        }
-        
-        // Get redirect URL
-        const redirectUrl = getRedirectUrl(formData.email, formData.userType);
-        
-        // Show success message
-        alert(`Welcome ${user.fullName}! Login successful.`);
-        
-        // Navigate
-        navigate(redirectUrl);
-      } else {
-        setServerError('Invalid email or password. Please try again.');
-      }
-    }
-    setIsSubmitting(false);
   };
 
   const handleCreateAccount = () => {
@@ -350,8 +419,6 @@ const SignIn = () => {
               </div>
             </form>
           </div>
-
-          
 
           {/* Footer */}
           <div className="mt-6 text-center">
