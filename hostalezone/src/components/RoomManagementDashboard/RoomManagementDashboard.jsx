@@ -64,7 +64,7 @@ const RoomManagementDashboard = () => {
       gradient: 'from-blue-600 to-cyan-500',
       lightGradient: 'from-blue-50 to-cyan-50',
       textColor: 'text-blue-600',
-      link: '/room-transfer-request',
+      link: '/RoomTransferRequest',
       description: '12 pending requests need attention',
       badge: 'urgent'
     },
@@ -109,7 +109,7 @@ const RoomManagementDashboard = () => {
       gradient: 'from-purple-600 to-pink-500',
       lightGradient: 'from-purple-50 to-pink-50',
       textColor: 'text-purple-600',
-      link: '/room-details-form',
+      link: '/RoomDetailsForm',
       description: 'Manage all room information',
       badge: 'info'
     }
@@ -284,7 +284,7 @@ const RoomManagementDashboard = () => {
                     
                     <div className="flex flex-wrap gap-3 mt-6">
                       <Link
-                        to="/room-details-form"
+                        to="/RoomDetailsForm"
                         className="group relative px-6 py-3 bg-white text-indigo-600 rounded-xl hover:bg-indigo-50 transition-all duration-300 font-semibold flex items-center shadow-xl overflow-hidden"
                       >
                         <span className="absolute inset-0 bg-gradient-to-r from-indigo-100 to-purple-100 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
@@ -297,7 +297,7 @@ const RoomManagementDashboard = () => {
                       </Link>
                       
                       <Link
-                        to="/room-transfer-request"
+                        to="/RoomTransferRequest"
                         className="group relative px-6 py-3 bg-indigo-500 text-white rounded-xl hover:bg-indigo-400 transition-all duration-300 font-semibold flex items-center shadow-xl overflow-hidden backdrop-blur-sm border border-white/20"
                       >
                         <span className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
@@ -536,7 +536,7 @@ const RoomManagementDashboard = () => {
                       <h4 className="text-xl font-bold text-gray-900 mb-2">Quick Actions</h4>
                       <p className="text-sm text-gray-600 mb-4">Manage {block.block} rooms</p>
                       <Link
-                        to="/room-details-form"
+                        to="/RoomDetailsForm"
                         className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-colors"
                       >
                         View Details
@@ -689,8 +689,8 @@ const RoomManagementDashboard = () => {
               
               <div className="p-4 space-y-2">
                 {[
-                  { to: '/room-details-form', icon: 'M12 6v6m0 0v6m0-6h6m-6 0H6', label: 'Add New Room', desc: 'Create new room details', color: 'from-indigo-600 to-purple-600' },
-                  { to: '/room-transfer-request', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4', label: 'Transfer Requests', desc: 'Manage room change requests', color: 'from-blue-600 to-cyan-500' },
+                  { to: '/RoomDetailsForm', icon: 'M12 6v6m0 0v6m0-6h6m-6 0H6', label: 'Add New Room', desc: 'Create new room details', color: 'from-indigo-600 to-purple-600' },
+                  { to: '/RoomTransferRequest', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4', label: 'Transfer Requests', desc: 'Manage room change requests', color: 'from-blue-600 to-cyan-500' },
                   { to: '/waiting-list', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', label: 'Waiting List', desc: `${stats.waitingList} students waiting`, color: 'from-amber-600 to-orange-500' },
                   { to: '/assign-rooms', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', label: 'Assign Rooms', desc: 'Allocate rooms to students', color: 'from-emerald-600 to-teal-500' }
                 ].map((link, index) => (

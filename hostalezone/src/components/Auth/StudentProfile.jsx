@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const StudentProfile = () => {
   const navigate = useNavigate();
@@ -8,17 +9,20 @@ const StudentProfile = () => {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [updateMessage, setUpdateMessage] = useState('');
   const [selectedActivity, setSelectedActivity] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   
   const [profileData, setProfileData] = useState({
-    itNumber: 'IT20231234',
-    fullName: 'John Michael Doe',
-    email: 'john.doe@stu.sliit.lk',
-    phone: '+94 77 123 4567',
-    department: 'computing',
-    address: '123 Main Street, Colombo 07, Sri Lanka',
-    roomNumber: 'B-204',
-    block: 'Block A',
-    joiningDate: '2023-09-15'
+    itNumber: '',
+    fullName: '',
+    email: '',
+    phone: '',
+    department: '',
+    address: '',
+    roomNumber: '',
+    block: '',
+    joiningDate: '',
+    profilePhoto: null
   });
 
   const [tempData, setTempData] = useState({ ...profileData });
@@ -34,15 +38,18 @@ const StudentProfile = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const departments = [
-    { value: 'computing', label: 'Computing', icon: 'bi-laptop' },
-    { value: 'business', label: 'Business', icon: 'bi-graph-up' },
-    { value: 'engineering', label: 'Engineering', icon: 'bi-tools' }
+    { value: 'Computer Science', label: 'Computer Science', icon: 'bi-laptop' },
+    { value: 'Engineering', label: 'Engineering', icon: 'bi-tools' },
+    { value: 'Business', label: 'Business', icon: 'bi-graph-up' },
+    { value: 'Medicine', label: 'Medicine', icon: 'bi-heart-pulse' },
+    { value: 'Law', label: 'Law', icon: 'bi-scale' },
+    { value: 'Other', label: 'Other', icon: 'bi-building' }
   ];
 
   const quickActions = [
-    { id: 'roomChange', label: 'Room Change Request', icon: 'bi-arrow-left-right', route: '/room-change' },
+    { id: 'roomChange', label: 'Room Change Request', icon: 'bi-arrow-left-right', route: '/room-change-request' },
     { id: 'payments', label: 'View Payment Details', icon: 'bi-credit-card', route: '/payments' },
-    { id: 'leaveRequest', label: 'Leave Request', icon: 'bi-calendar-check', route: '/leave-request' },
+    { id: 'leaveRequest', label: 'Leave Request', icon: 'bi-calendar-check', route: '/LeaveRequest' },
     { id: 'complaint', label: 'Submit Complaint', icon: 'bi-chat-dots', route: '/complaint' }
   ];
 
@@ -106,6 +113,118 @@ const StudentProfile = () => {
     }
   ];
 
+  // Fetch student profile on component mount
+  useEffect(() => {
+    const fetchStudentProfile = async () => {
+      setLoading(true);
+      setError('');
+      
+      try {
+        // Get token from localStorage
+        const token = localStorage.getItem('token');
+        const userStr = localStorage.getItem('user');
+        
+        if (!token || !userStr) {
+          // No token or user data, redirect to login
+          navigate('/SignIn');
+          return;
+        }
+        
+        const user = JSON.parse(userStr);
+        
+        // If user data is already in localStorage, use it
+        if (user && user.itNumber) {
+          setProfileData({
+            itNumber: user.itNumber || '',
+            fullName: user.fullName || '',
+            email: user.email || '',
+            phone: user.phone || '',
+            department: user.department || 'Computer Science',
+            address: user.address || '',
+            roomNumber: user.roomNumber || 'Not Assigned',
+            block: user.block || 'Not Assigned',
+            joiningDate: user.joiningDate || new Date().toISOString().split('T')[0],
+            profilePhoto: user.profilePhoto || null
+          });
+          setTempData({
+            itNumber: user.itNumber || '',
+            fullName: user.fullName || '',
+            email: user.email || '',
+            phone: user.phone || '',
+            department: user.department || 'Computer Science',
+            address: user.address || '',
+            roomNumber: user.roomNumber || 'Not Assigned',
+            block: user.block || 'Not Assigned',
+            joiningDate: user.joiningDate || new Date().toISOString().split('T')[0],
+            profilePhoto: user.profilePhoto || null
+          });
+          
+          // Set photo preview if profile photo exists
+          if (user.profilePhoto) {
+            setPhotoPreview(user.profilePhoto);
+          }
+        } else {
+          // Fetch fresh data from backend
+          const response = await axios.get('http://localhost:5000/api/auth/profile', {
+            headers: {
+              Authorization: `Bearer ${token}`
+            },
+            withCredentials: true
+          });
+          
+          if (response.data.success && response.data.user) {
+            const userData = response.data.user;
+            setProfileData({
+              itNumber: userData.itNumber || '',
+              fullName: userData.fullName || '',
+              email: userData.email || '',
+              phone: userData.phone || '',
+              department: userData.department || 'Computer Science',
+              address: userData.address || '',
+              roomNumber: userData.roomNumber || 'Not Assigned',
+              block: userData.block || 'Not Assigned',
+              joiningDate: userData.joiningDate || new Date().toISOString().split('T')[0],
+              profilePhoto: userData.profilePhoto || null
+            });
+            setTempData({
+              itNumber: userData.itNumber || '',
+              fullName: userData.fullName || '',
+              email: userData.email || '',
+              phone: userData.phone || '',
+              department: userData.department || 'Computer Science',
+              address: userData.address || '',
+              roomNumber: userData.roomNumber || 'Not Assigned',
+              block: userData.block || 'Not Assigned',
+              joiningDate: userData.joiningDate || new Date().toISOString().split('T')[0],
+              profilePhoto: userData.profilePhoto || null
+            });
+            
+            if (userData.profilePhoto) {
+              setPhotoPreview(userData.profilePhoto);
+            }
+            
+            // Update localStorage with fresh data
+            localStorage.setItem('user', JSON.stringify(userData));
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching profile:', err);
+        if (err.response?.status === 401) {
+          // Unauthorized, redirect to login
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          navigate('/SignIn');
+        } else {
+          setError('Failed to load profile data. Please try again.');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchStudentProfile();
+  }, [navigate]);
+
   const handleEditClick = () => {
     setTempData({ ...profileData });
     setIsEditing(true);
@@ -121,7 +240,16 @@ const StudentProfile = () => {
     setTempData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handlePhotoChange = (e) => {
+  const convertToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  const handlePhotoChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
@@ -129,18 +257,69 @@ const StudentProfile = () => {
         setPhotoPreview(reader.result);
       };
       reader.readAsDataURL(file);
+      setTempData(prev => ({ ...prev, profilePhoto: file }));
     }
   };
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     setIsSubmitting(true);
-    setTimeout(() => {
-      setProfileData({ ...tempData });
-      setIsEditing(false);
-      setUpdateMessage('Profile updated successfully!');
-      setIsSubmitting(false);
+    
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setUpdateMessage('Session expired. Please login again.');
+        setTimeout(() => navigate('/SignIn'), 2000);
+        return;
+      }
+      
+      let profilePhotoBase64 = tempData.profilePhoto;
+      if (tempData.profilePhoto && typeof tempData.profilePhoto !== 'string') {
+        profilePhotoBase64 = await convertToBase64(tempData.profilePhoto);
+      }
+      
+      const updateData = {
+        fullName: tempData.fullName,
+        email: tempData.email,
+        phone: tempData.phone,
+        department: tempData.department,
+        address: tempData.address,
+        profilePhoto: profilePhotoBase64
+      };
+      
+      const response = await axios.put('http://localhost:5000/api/auth/profile', updateData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        withCredentials: true
+      });
+      
+      if (response.data.success) {
+        const updatedUser = response.data.user;
+        setProfileData({
+          ...tempData,
+          profilePhoto: profilePhotoBase64
+        });
+        
+        // Update localStorage
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        localStorage.setItem('user', JSON.stringify({
+          ...currentUser,
+          ...updatedUser,
+          profilePhoto: profilePhotoBase64
+        }));
+        
+        setIsEditing(false);
+        setUpdateMessage('Profile updated successfully!');
+        setTimeout(() => setUpdateMessage(''), 3000);
+      }
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      setUpdateMessage(err.response?.data?.message || 'Failed to update profile');
       setTimeout(() => setUpdateMessage(''), 3000);
-    }, 800);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handlePasswordChange = (e) => {
@@ -155,10 +334,7 @@ const StudentProfile = () => {
     const errors = {};
     if (!passwordData.currentPassword) errors.currentPassword = 'Current password is required';
     if (!passwordData.newPassword) errors.newPassword = 'New password is required';
-    if (passwordData.newPassword.length < 8) errors.newPassword = 'Password must be at least 8 characters';
-    if (!/(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])/.test(passwordData.newPassword)) {
-      errors.newPassword = 'Must contain uppercase, lowercase & number';
-    }
+    if (passwordData.newPassword.length < 6) errors.newPassword = 'Password must be at least 6 characters';
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       errors.confirmPassword = 'Passwords do not match';
     }
@@ -166,16 +342,34 @@ const StudentProfile = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleUpdatePassword = () => {
+  const handleUpdatePassword = async () => {
     if (validatePassword()) {
       setIsSubmitting(true);
-      setTimeout(() => {
-        setUpdateMessage('Password changed successfully!');
-        setShowChangePassword(false);
-        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-        setIsSubmitting(false);
+      
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.put('http://localhost:5000/api/auth/change-password', {
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword
+        }, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          withCredentials: true
+        });
+        
+        if (response.data.success) {
+          setUpdateMessage('Password changed successfully!');
+          setShowChangePassword(false);
+          setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+          setTimeout(() => setUpdateMessage(''), 3000);
+        }
+      } catch (err) {
+        setUpdateMessage(err.response?.data?.message || 'Failed to change password');
         setTimeout(() => setUpdateMessage(''), 3000);
-      }, 800);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -184,8 +378,10 @@ const StudentProfile = () => {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setShowLogoutModal(false);
-    navigate('/login');
+    navigate('/SignIn');
   };
 
   const getDepartmentLabel = (value) => {
@@ -193,10 +389,19 @@ const StudentProfile = () => {
     return dept ? dept.label : value;
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Not available';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
   const stats = [
     { label: 'Room Number', value: profileData.roomNumber, icon: 'bi-door-closed' },
     { label: 'Block', value: profileData.block, icon: 'bi-building' },
-    { label: 'Member Since', value: profileData.joiningDate, icon: 'bi-calendar' },
+    { label: 'Member Since', value: formatDate(profileData.joiningDate), icon: 'bi-calendar' },
     { label: 'Department', value: getDepartmentLabel(profileData.department), icon: 'bi-mortarboard' }
   ];
 
@@ -242,6 +447,39 @@ const StudentProfile = () => {
     return themes[theme] || themes.blue;
   };
 
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
+        <div className="text-center bg-white rounded-xl shadow-lg p-8 max-w-md mx-4">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i className="bi bi-exclamation-triangle-fill text-red-600 text-2xl"></i>
+          </div>
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">Error Loading Profile</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-all"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
@@ -258,7 +496,7 @@ const StudentProfile = () => {
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tight">SLIIT Uni Stay</h1>
-                <p className="text-blue-100 mt-1">Your comfortable home away from home</p>
+                <p className="text-blue-100 mt-1">Welcome back, {profileData.fullName || 'Student'}!</p>
               </div>
               <div className="flex gap-3">
                 <button className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition-all flex items-center gap-2 backdrop-blur-sm">
@@ -276,8 +514,12 @@ const StudentProfile = () => {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {updateMessage && (
-            <div className="mb-6 bg-green-50 border-l-4 border-green-500 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2 animate-fade-in shadow-sm">
-              <i className="bi bi-check-circle-fill text-green-500"></i>
+            <div className={`mb-6 border-l-4 px-4 py-3 rounded-lg flex items-center gap-2 animate-fade-in shadow-sm ${
+              updateMessage.includes('success') || updateMessage.includes('Successfully')
+                ? 'bg-green-50 border-green-500 text-green-700'
+                : 'bg-red-50 border-red-500 text-red-700'
+            }`}>
+              <i className={`bi ${updateMessage.includes('success') || updateMessage.includes('Successfully') ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'} text-current`}></i>
               <span className="text-sm font-medium">{updateMessage}</span>
             </div>
           )}
@@ -304,9 +546,9 @@ const StudentProfile = () => {
               <div className="bg-white rounded-xl shadow-md border border-blue-100 overflow-hidden sticky top-8">
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-6 text-center">
                   <div className="relative inline-block">
-                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center border-4 border-white shadow-xl mx-auto">
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center border-4 border-white shadow-xl mx-auto overflow-hidden">
                       {photoPreview ? (
-                        <img src={photoPreview} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                        <img src={photoPreview} alt="Profile" className="w-full h-full object-cover" />
                       ) : (
                         <i className="bi bi-person-fill text-4xl text-white"></i>
                       )}
@@ -372,7 +614,7 @@ const StudentProfile = () => {
                         className="flex-1 text-sm bg-gray-50 border border-blue-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                       />
                     ) : (
-                      <span className="text-sm">{profileData.address}</span>
+                      <span className="text-sm">{profileData.address || 'Not provided'}</span>
                     )}
                   </div>
                   <div className="flex items-center gap-3 text-gray-600 py-2">
@@ -411,7 +653,7 @@ const StudentProfile = () => {
                         className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
                       >
                         <i className="bi bi-check-lg"></i>
-                        <span>Save</span>
+                        <span>{isSubmitting ? 'Saving...' : 'Save'}</span>
                       </button>
                       <button
                         onClick={handleCancelEdit}
@@ -795,11 +1037,18 @@ const StudentProfile = () => {
           from { opacity: 0; transform: translateY(-20px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
         .animate-fade-in {
           animation: fade-in 0.3s ease-out;
         }
         .animate-slide-down {
           animation: slide-down 0.3s ease-out;
+        }
+        .animate-spin {
+          animation: spin 1s linear infinite;
         }
       `}</style>
     </>

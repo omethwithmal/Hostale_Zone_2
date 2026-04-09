@@ -1,82 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Calendar, CheckCircle, XCircle, Clock, User, Hash, Home as HomeIcon,
   BookOpen, Phone, Mail, FileText, Trash2, Edit, Plus, AlertCircle,
-  Check, Ban, X, Search, TrendingUp, MessageSquare
+  Check, Ban, X, Search, TrendingUp, MessageSquare, Users
 } from 'lucide-react';
 
 const LeaveManagement = ({ darkMode, students }) => {
   // ========== LEAVE REQUESTS STATE ==========
-  const [leaveRequests, setLeaveRequests] = useState([
-    {
-      id: '1',
-      studentId: '1',
-      studentName: 'Amal Perera',
-      studentItNumber: 'IT2023001',
-      roomNumber: 'A-101',
-      block: 'Tower A',
-      department: 'Computer Science',
-      contactNumber: '+94 71 234 5678',
-      email: 'amal.perera@example.com',
-      startDate: '2024-03-20',
-      endDate: '2024-03-25',
-      reason: 'Family vacation to visit parents in Kandy',
-      status: 'pending',
-      rejectionReason: '',
-      submittedAt: '2024-03-15T10:30:00'
-    },
-    {
-      id: '2',
-      studentId: '2',
-      studentName: 'Nimali Fernando',
-      studentItNumber: 'IT2023002',
-      roomNumber: 'B-202',
-      block: 'Tower B',
-      department: 'Information Systems',
-      contactNumber: '+94 72 345 6789',
-      email: 'nimali.fernando@example.com',
-      startDate: '2024-03-18',
-      endDate: '2024-03-22',
-      reason: 'Medical emergency - need to undergo surgery',
-      status: 'approved',
-      rejectionReason: '',
-      submittedAt: '2024-03-14T09:15:00'
-    },
-    {
-      id: '3',
-      studentId: '3',
-      studentName: 'Kasun Bandara',
-      studentItNumber: 'IT2023003',
-      roomNumber: 'C-303',
-      block: 'Tower C',
-      department: 'Software Engineering',
-      contactNumber: '+94 73 456 7890',
-      email: 'kasun.bandara@example.com',
-      startDate: '2024-03-22',
-      endDate: '2024-03-24',
-      reason: 'Attending a tech conference in Colombo',
-      status: 'rejected',
-      rejectionReason: 'Insufficient documentation. Please submit conference registration proof.',
-      submittedAt: '2024-03-13T14:20:00'
-    },
-    {
-      id: '4',
-      studentId: '4',
-      studentName: 'Tharushi Jayawardena',
-      studentItNumber: 'IT2023004',
-      roomNumber: 'A-104',
-      block: 'Tower A',
-      department: 'Computer Science',
-      contactNumber: '+94 74 567 8901',
-      email: 'tharushi.j@example.com',
-      startDate: '2024-03-25',
-      endDate: '2024-03-28',
-      reason: 'Sister\'s wedding ceremony',
-      status: 'pending',
-      rejectionReason: '',
-      submittedAt: '2024-03-16T11:45:00'
-    }
-  ]);
+  const [leaveRequests, setLeaveRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    completed: 0
+  });
 
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [editingRequest, setEditingRequest] = useState(null);
@@ -101,31 +40,205 @@ const LeaveManagement = ({ darkMode, students }) => {
     reason: ''
   });
 
-  // Statistics
-  const pendingCount = leaveRequests.filter(r => r.status === 'pending').length;
-  const approvedCount = leaveRequests.filter(r => r.status === 'approved').length;
-  const rejectedCount = leaveRequests.filter(r => r.status === 'rejected').length;
-  const totalRequests = leaveRequests.length;
-  
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
-  const approvedThisMonth = leaveRequests.filter(r => {
-    const date = new Date(r.submittedAt);
-    return r.status === 'approved' && date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-  }).length;
+  // API Base URL
+  const API_BASE_URL = 'http://localhost:5000/leaverequests';
 
-  // Filtered requests
-  const filteredRequests = leaveRequests.filter(request => {
-    const matchesSearch = request.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          request.studentItNumber.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' ? true : request.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  // ========== FETCH DATA FROM BACKEND ==========
+  const fetchLeaveRequests = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/display`);
+      const data = await response.json();
+      
+      if (data.success) {
+        // Transform backend data to frontend format
+        const transformedRequests = data.data.map(request => ({
+          id: request._id,
+          studentId: request.studentItNumber,
+          studentName: request.studentName,
+          studentItNumber: request.studentItNumber,
+          roomNumber: request.roomNumber,
+          block: request.block,
+          department: request.department,
+          contactNumber: request.contactNumber,
+          email: request.email,
+          startDate: request.startDate.split('T')[0],
+          endDate: request.endDate.split('T')[0],
+          reason: request.reason,
+          status: request.status.toLowerCase(),
+          rejectionReason: request.rejectionReason || '',
+          submittedAt: request.submittedAt || request.createdAt
+        }));
+        setLeaveRequests(transformedRequests);
+      }
+    } catch (error) {
+      console.error('Error fetching leave requests:', error);
+      showNotification('Failed to load leave requests', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const sortedRequests = [...filteredRequests].sort((a, b) => 
-    new Date(b.submittedAt) - new Date(a.submittedAt)
-  );
+  const fetchStats = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/stats`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setStats(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
 
+  // ========== CRUD OPERATIONS ==========
+  const createLeaveRequest = async (requestData) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/add`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData)
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        await fetchLeaveRequests();
+        await fetchStats();
+        showNotification('Leave request submitted successfully!', 'success');
+        return true;
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      console.error('Error creating leave request:', error);
+      showNotification(error.message || 'Failed to submit leave request', 'error');
+      return false;
+    }
+  };
+
+  const updateLeaveRequest = async (id, requestData) => {
+    try {
+      // Note: You need to add an update endpoint in your backend
+      // For now, we'll create a new one and delete the old
+      const response = await fetch(`${API_BASE_URL}/add`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData)
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Delete old request
+        await deleteLeaveRequest(id, false);
+        await fetchLeaveRequests();
+        await fetchStats();
+        showNotification('Leave request updated successfully!', 'success');
+        return true;
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      console.error('Error updating leave request:', error);
+      showNotification(error.message || 'Failed to update leave request', 'error');
+      return false;
+    }
+  };
+
+  const approveLeaveRequest = async (id, approvedBy = 'Admin') => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/approve/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ approvedBy })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        await fetchLeaveRequests();
+        await fetchStats();
+        showNotification(`Leave request approved successfully!`, 'success');
+        return true;
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      console.error('Error approving leave request:', error);
+      showNotification(error.message || 'Failed to approve leave request', 'error');
+      return false;
+    }
+  };
+
+  const rejectLeaveRequest = async (id, rejectionReason, rejectedBy = 'Admin') => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/reject/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ rejectionReason, rejectedBy })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        await fetchLeaveRequests();
+        await fetchStats();
+        showNotification(`Leave request rejected`, 'error');
+        return true;
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      console.error('Error rejecting leave request:', error);
+      showNotification(error.message || 'Failed to reject leave request', 'error');
+      return false;
+    }
+  };
+
+  const deleteLeaveRequest = async (id, showNotif = true) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/delete/${id}`, {
+        method: 'DELETE',
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        await fetchLeaveRequests();
+        await fetchStats();
+        if (showNotif) {
+          showNotification('Leave request deleted successfully!', 'error');
+        }
+        return true;
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      console.error('Error deleting leave request:', error);
+      if (showNotif) {
+        showNotification(error.message || 'Failed to delete leave request', 'error');
+      }
+      return false;
+    }
+  };
+
+  // ========== INITIAL DATA LOAD ==========
+  useEffect(() => {
+    fetchLeaveRequests();
+    fetchStats();
+  }, []);
+
+  // ========== HELPER FUNCTIONS ==========
   const showNotification = (message, type = 'success') => {
     setNotification({ show: true, message, type });
     setTimeout(() => setNotification({ show: false, message: '', type: '' }), 3000);
@@ -161,7 +274,7 @@ const LeaveManagement = ({ darkMode, students }) => {
     }
   };
 
-  const handleSubmitRequest = (e) => {
+  const handleSubmitRequest = async (e) => {
     e.preventDefault();
     
     if (new Date(formData.endDate) < new Date(formData.startDate)) {
@@ -169,56 +282,51 @@ const LeaveManagement = ({ darkMode, students }) => {
       return;
     }
 
+    const requestData = {
+      studentName: formData.studentName,
+      studentItNumber: formData.studentItNumber,
+      roomNumber: formData.roomNumber,
+      block: formData.block,
+      department: formData.department,
+      contactNumber: formData.contactNumber,
+      email: formData.email,
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+      reason: formData.reason
+    };
+
+    let success;
     if (editingRequest) {
-      setLeaveRequests(leaveRequests.map(r => 
-        r.id === editingRequest.id 
-          ? { ...r, ...formData, status: 'pending', rejectionReason: '' }
-          : r
-      ));
-      showNotification('Leave request updated successfully!', 'success');
+      success = await updateLeaveRequest(editingRequest.id, requestData);
     } else {
-      const newRequest = {
-        id: Date.now().toString(),
-        ...formData,
-        status: 'pending',
-        rejectionReason: '',
-        submittedAt: new Date().toISOString()
-      };
-      setLeaveRequests([newRequest, ...leaveRequests]);
-      showNotification('Leave request submitted successfully!', 'success');
+      success = await createLeaveRequest(requestData);
     }
-    resetForm();
-    setShowRequestForm(false);
+    
+    if (success) {
+      resetForm();
+      setShowRequestForm(false);
+    }
   };
 
-  const handleApprove = (request) => {
-    setLeaveRequests(leaveRequests.map(r =>
-      r.id === request.id ? { ...r, status: 'approved', rejectionReason: '' } : r
-    ));
-    showNotification(`✓ Leave request for ${request.studentName} approved!`, 'success');
+  const handleApprove = async (request) => {
+    await approveLeaveRequest(request.id);
   };
 
-  const handleReject = () => {
+  const handleReject = async () => {
     if (!showRejectModal) return;
     if (!rejectionReason.trim()) {
       showNotification('Please provide a reason for rejection', 'error');
       return;
     }
     
-    setLeaveRequests(leaveRequests.map(r =>
-      r.id === showRejectModal.id
-        ? { ...r, status: 'rejected', rejectionReason: rejectionReason }
-        : r
-    ));
-    showNotification(`✗ Leave request for ${showRejectModal.studentName} rejected`, 'error');
+    await rejectLeaveRequest(showRejectModal.id, rejectionReason);
     setShowRejectModal(null);
     setRejectionReason('');
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this leave request?')) {
-      setLeaveRequests(leaveRequests.filter(r => r.id !== id));
-      showNotification('Leave request deleted successfully!', 'error');
+      await deleteLeaveRequest(id);
     }
   };
 
@@ -239,6 +347,18 @@ const LeaveManagement = ({ darkMode, students }) => {
     setEditingRequest(request);
     setShowRequestForm(true);
   };
+
+  // Filtered requests
+  const filteredRequests = leaveRequests.filter(request => {
+    const matchesSearch = request.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          request.studentItNumber.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' ? true : request.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const sortedRequests = [...filteredRequests].sort((a, b) => 
+    new Date(b.submittedAt) - new Date(a.submittedAt)
+  );
 
   const getStatusBadge = (status) => {
     switch(status) {
@@ -546,15 +666,24 @@ const LeaveManagement = ({ darkMode, students }) => {
     );
   };
 
+  // Loading State
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
   // ========== MAIN RENDER ==========
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-        <StatCard title="Total Requests" value={totalRequests} icon={FileText} subtitle="All time" />
-        <StatCard title="Pending" value={pendingCount} icon={Clock} subtitle="Awaiting action" />
-        <StatCard title="Approved" value={approvedCount} icon={CheckCircle} subtitle={`${approvedThisMonth} this month`} />
-        <StatCard title="Rejected" value={rejectedCount} icon={XCircle} subtitle="Declined requests" />
+        <StatCard title="Total Requests" value={stats.total} icon={FileText} subtitle="All time" />
+        <StatCard title="Pending" value={stats.pending} icon={Clock} subtitle="Awaiting action" />
+        <StatCard title="Approved" value={stats.approved} icon={CheckCircle} subtitle="Approved requests" />
+        <StatCard title="Rejected" value={stats.rejected} icon={XCircle} subtitle="Declined requests" />
       </div>
 
       {/* Search and Filter Bar */}
