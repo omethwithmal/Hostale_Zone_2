@@ -19,23 +19,25 @@ import RoomManageMentNavebar from "./components/RoomManageMentNavebar/RoomManage
 import RoomManagementSidebar from "./components/RoomManageMentNavebar/RoomManagementSidebar";
 import GoogleSheetTable from "./components/Attendance/GoogleSheetTable";
 
-// Ranga
+// Ranga module
 import R_AdminDashboard from "./components/RANGA/R_AdminDashboard";
 import R_AdminLeaveManagement from "./components/RANGA/R_AdminLeaveManagement";
+import LeaveRequest from "./components/RANGA/LeaveRequest";
+
+// Auth components
 import StudentRegistration from "./components/Auth/StudentRegistration";
 import SignIn from "./components/Auth/SignIn";
 import StudentProfile from "./components/Auth/StudentProfile";
-import LeaveRequest from "./components/RANGA/LeaveRequest";
 
-// CHANGED: Hasinika's complaint module imports added
+// Complaint module
 import Complaints from "./components/complain/complain";
 import AdminPanel from "./components/complain/AdminPanel";
 import Dashboard from "./components/complain/Dashboard";
 import NewComplaint from "./components/complain/NewComplaint";
 import ComplaintHome from "./components/complain/Home";
 
-// Home Page Component
-function Home() {
+// Main landing page
+function HomePage() {
   return (
     <>
       <NaveBar />
@@ -50,7 +52,7 @@ function Home() {
   );
 }
 
-// Another page/component example
+// Optional external 3D model page
 function ExternalView() {
   return (
     <div className="App">
@@ -69,15 +71,14 @@ function App() {
     <Router>
       <Routes>
         {/* Main website routes */}
-        <Route path="/" element={<Home />} />
-
-        {/* CHANGED: added separate routes for navbar links */}
+        <Route path="/" element={<HomePage />} />
         <Route path="/rooms" element={<Rooms />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/rules" element={<Rules />} />
-
         <Route path="/external" element={<ExternalView />} />
+
+        {/* Room management routes */}
         <Route path="/room-change-request" element={<RoomChangeRequest />} />
         <Route path="/RoomDetailsForm" element={<RoomDetailsForm />} />
         <Route path="/RoomTransferRequest" element={<RoomTransferRequest />} />
@@ -95,25 +96,22 @@ function App() {
           element={<RoomManagementSidebar />}
         />
 
-
-
-
-        {/* Ranga routes */}
-        <Route path="/R_AdminDashboard" element={<R_AdminDashboard />} />
+        {/* Leave / admin module routes */}
+        <Route path="/R-AdminDashboard" element={<R_AdminDashboard />} />
         <Route
-          path="/R_AdminLeaveManagement"
+          path="/R-AdminLeaveManagement"
           element={<R_AdminLeaveManagement />}
         />
-        <Route
-          path="/StudentRegistration"
-          element={<StudentRegistration />}
-        />
-        <Route path="/StudentProfile" element={<StudentProfile />} />
-        <Route path="/SignIn" element={<SignIn />} />
         <Route path="/LeaveRequest" element={<LeaveRequest />} />
 
-        {/* CHANGED: Hasinika complaint module routes added */}
+        {/* Auth routes */}
+        <Route path="/StudentRegistration" element={<StudentRegistration />} />
+        <Route path="/SignIn" element={<SignIn />} />
+        <Route path="/StudentProfile" element={<StudentProfile />} />
+
+        {/* Complaint module routes */}
         <Route path="/complaints" element={<Complaints />} />
+        <Route path="/complaint" element={<NewComplaint />} />
         <Route path="/new-complaint" element={<NewComplaint />} />
         <Route path="/complaint-dashboard" element={<Dashboard />} />
         <Route path="/complaint-admin" element={<AdminPanel />} />
