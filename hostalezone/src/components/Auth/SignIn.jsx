@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios'; // Make sure to install axios: npm install axios
+import axios from 'axios';
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ const SignIn = () => {
     { value: 'student', label: 'Student', icon: 'bi-mortarboard-fill', desc: 'Learning Platform' }
   ];
 
-  // 🎯 Admin Users (Local authentication only)
+  // Local admin accounts
   const adminUsers = {
     'ometh@gmail.com': { password: '123456', fullName: 'Ometh', userType: 'admin' },
     'ranga@gmail.com': { password: '123456', fullName: 'Ranga', userType: 'admin' },
@@ -31,65 +31,39 @@ const SignIn = () => {
     'angalee@gmail.com': { password: '123456', fullName: 'Angalee', userType: 'admin' }
   };
 
-  // 🎯 Email to Route mapping for Admins
-  const adminEmailRoutes = {
-    'ometh@gmail.com': '/RoomManagementDashboard',
-    'ranga@gmail.com': '/R_AdminDashboard',
-    'hansika@gmail.com': '/complaint-dashboard',
-    'angalee@gmail.com': '/R_AdminDashboard'
-  };
-
-  // 🎯 Function to determine redirect URL based on email and userType
-  const getRedirectUrl = (email, userType) => {
-    const normalizedEmail = email.toLowerCase().trim();
-    
-    // Admin routing based on email
-    if (userType === 'admin') {
-      if (adminEmailRoutes[normalizedEmail]) {
-        return adminEmailRoutes[normalizedEmail];
-      }
-      return '/admin-dashboard';
-    }
-    
-    // Student routing
-    return '/StudentProfile';
-  };
-
-  // 🎯 Admin Login (Local validation)
+  // Admin login using local validation
   const handleAdminLogin = (email, password) => {
     const normalizedEmail = email.toLowerCase().trim();
     const admin = adminUsers[normalizedEmail];
     
     if (admin && admin.password === password) {
-      const userData = {
+      const adminData = {
         fullName: admin.fullName,
-        email: email,
+        email: normalizedEmail,
         userType: 'admin',
         role: 'admin'
       };
       
-      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('user', JSON.stringify(adminData));
       localStorage.setItem('token', 'mock-admin-token-123456');
       
       if (rememberMe) {
-        localStorage.setItem('rememberedEmail', email);
+        localStorage.setItem('rememberedEmail', normalizedEmail);
       } else {
         localStorage.removeItem('rememberedEmail');
       }
       
-      const redirectUrl = getRedirectUrl(email, 'admin');
       alert(`Welcome ${admin.fullName}! Admin login successful.`);
-      navigate(redirectUrl);
+      navigate('/R-AdminDashboard');
       return true;
     }
     return false;
   };
 
-  // 🎯 Student Login (Backend API call)
+  // Student login using backend API
   const handleStudentLogin = async (email, password) => {
     try {
-      // Replace with your actual backend API endpoint
-      const API_URL = 'http://localhost:5000/api/auth/login'; // Update with your backend URL
+      const API_URL = 'http://localhost:5000/api/auth/login';
       
       const response = await axios.post(API_URL, {
         email: email.toLowerCase().trim(),
@@ -97,20 +71,22 @@ const SignIn = () => {
       });
       
       if (response.data.success || response.data.token) {
-        // Store student data from backend response
+        const backendUser = response.data.user || {};
+
         const studentData = {
-          fullName: response.data.fullName || response.data.name || 'Student',
-          email: email,
-          userType: 'student',
-          studentId: response.data.studentId || response.data.id,
-          token: response.data.token
+          ...backendUser,
+          fullName: backendUser.fullName || response.data.fullName || response.data.name || 'Student',
+          email: backendUser.email || email.toLowerCase().trim(),
+          userType: backendUser.userType || 'student',
+          role: backendUser.role || 'student',
+          studentId: backendUser.studentId || response.data.studentId || response.data.id
         };
         
         localStorage.setItem('user', JSON.stringify(studentData));
         localStorage.setItem('token', response.data.token);
         
         if (rememberMe) {
-          localStorage.setItem('rememberedEmail', email);
+          localStorage.setItem('rememberedEmail', email.toLowerCase().trim());
         } else {
           localStorage.removeItem('rememberedEmail');
         }
@@ -125,20 +101,17 @@ const SignIn = () => {
       console.error('Student login error:', error);
       
       if (error.response) {
-        // Server responded with error status
         const errorMsg = error.response.data.message || 'Invalid email or password';
         throw new Error(errorMsg);
       } else if (error.request) {
-        // No response from server
         throw new Error('Cannot connect to server. Please check your internet connection.');
       } else {
-        // Other errors
         throw new Error(error.message || 'Login failed. Please try again.');
       }
     }
   };
 
-  // 🎯 Main submit handler
+  // Main submit handler
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -151,24 +124,25 @@ const SignIn = () => {
         let loginSuccess = false;
         
         if (userType === 'admin') {
-          // Admin login using local validation
           loginSuccess = handleAdminLogin(email, password);
           if (!loginSuccess) {
             setServerError('Invalid admin credentials. Please check your email and password.');
           }
         } else {
-          // Student login using backend API
           await handleStudentLogin(email, password);
           loginSuccess = true;
         }
-        
+
+        return loginSuccess;
       } catch (error) {
         setServerError(error.message || 'Login failed. Please try again.');
         console.error('Login error:', error);
+      } finally {
+        setIsSubmitting(false);
       }
+    } else {
+      setIsSubmitting(false);
     }
-    
-    setIsSubmitting(false);
   };
 
   const handleChange = (e) => {
@@ -227,7 +201,7 @@ const SignIn = () => {
       
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full">
-          {/* Logo/Brand Section */}
+          {/* Logo / brand section */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-xl shadow-lg mb-4">
               <i className="bi bi-building text-2xl text-white"></i>
@@ -236,7 +210,7 @@ const SignIn = () => {
             <p className="text-gray-500 mt-1 text-sm">Sign in to access your dashboard</p>
           </div>
 
-          {/* Form Card */}
+          {/* Sign in card */}
           <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
               <div className="flex items-center gap-2">
@@ -253,7 +227,7 @@ const SignIn = () => {
                 </div>
               )}
 
-              {/* Role Selection */}
+              {/* Role selection */}
               <div className="mb-6">
                 <label className="block text-gray-700 text-sm font-medium mb-3">
                   Login As
@@ -298,7 +272,7 @@ const SignIn = () => {
                 </div>
               </div>
 
-              {/* Email Field */}
+              {/* Email field */}
               <div className="mb-4">
                 <label className="block text-gray-700 text-sm font-medium mb-2">
                   Email Address
@@ -327,7 +301,7 @@ const SignIn = () => {
                 )}
               </div>
 
-              {/* Password Field */}
+              {/* Password field */}
               <div className="mb-4">
                 <label className="block text-gray-700 text-sm font-medium mb-2">
                   Password
@@ -363,7 +337,7 @@ const SignIn = () => {
                 )}
               </div>
 
-              {/* Remember Me & Forgot Password */}
+              {/* Remember me */}
               <div className="flex items-center justify-between mb-6">
                 <label className="flex items-center cursor-pointer">
                   <input
@@ -383,7 +357,7 @@ const SignIn = () => {
                 </button>
               </div>
 
-              {/* Submit Button */}
+              {/* Submit button */}
               <button
                 type="submit"
                 disabled={isSubmitting}
@@ -404,7 +378,7 @@ const SignIn = () => {
                 )}
               </button>
 
-              {/* Sign Up Link */}
+              {/* Create account link */}
               <div className="mt-5 text-center">
                 <p className="text-xs text-gray-500">
                   Don't have an account?{' '}
