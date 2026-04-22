@@ -50,7 +50,7 @@ const StudentProfile = () => {
     { id: 'roomChange', label: 'Room Change Request', icon: 'bi-arrow-left-right', route: '/room-change-request' },
     { id: 'payments', label: 'View Payment Details', icon: 'bi-credit-card', route: '/payments' },
     { id: 'leaveRequest', label: 'Leave Request', icon: 'bi-calendar-check', route: '/LeaveRequest' },
-    { id: 'complaint', label: 'Submit Complaint', icon: 'bi-chat-dots', route: '/complaint' }
+    { id: 'complaint', label: 'Submit Complaint', icon: 'bi-chat-dots', route: '//new-complaint' }
   ];
 
   const activities = [
@@ -125,14 +125,12 @@ const StudentProfile = () => {
         const userStr = localStorage.getItem('user');
         
         if (!token || !userStr) {
-          // No token or user data, redirect to login
           navigate('/SignIn');
           return;
         }
         
         const user = JSON.parse(userStr);
         
-        // If user data is already in localStorage, use it
         if (user && user.itNumber) {
           setProfileData({
             itNumber: user.itNumber || '',
@@ -159,12 +157,10 @@ const StudentProfile = () => {
             profilePhoto: user.profilePhoto || null
           });
           
-          // Set photo preview if profile photo exists
           if (user.profilePhoto) {
             setPhotoPreview(user.profilePhoto);
           }
         } else {
-          // Fetch fresh data from backend
           const response = await axios.get('http://localhost:5000/api/auth/profile', {
             headers: {
               Authorization: `Bearer ${token}`
@@ -203,14 +199,12 @@ const StudentProfile = () => {
               setPhotoPreview(userData.profilePhoto);
             }
             
-            // Update localStorage with fresh data
             localStorage.setItem('user', JSON.stringify(userData));
           }
         }
       } catch (err) {
         console.error('Error fetching profile:', err);
         if (err.response?.status === 401) {
-          // Unauthorized, redirect to login
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           navigate('/SignIn');
@@ -301,7 +295,6 @@ const StudentProfile = () => {
           profilePhoto: profilePhotoBase64
         });
         
-        // Update localStorage
         const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
         localStorage.setItem('user', JSON.stringify({
           ...currentUser,
@@ -447,7 +440,6 @@ const StudentProfile = () => {
     return themes[theme] || themes.blue;
   };
 
-  // Show loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
@@ -459,7 +451,6 @@ const StudentProfile = () => {
     );
   }
 
-  // Show error state
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
@@ -498,7 +489,15 @@ const StudentProfile = () => {
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tight">SLIIT Uni Stay</h1>
                 <p className="text-blue-100 mt-1">Welcome back, {profileData.fullName || 'Student'}!</p>
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => navigate('/')}
+                  className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition-all flex items-center gap-2 backdrop-blur-sm"
+                  type="button"
+                >
+                  <i className="bi bi-arrow-left"></i>
+                  <span className="text-sm hidden sm:inline">Back to Home</span>
+                </button>
                 <button className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition-all flex items-center gap-2 backdrop-blur-sm">
                   <i className="bi bi-bell"></i>
                   <span className="text-sm hidden sm:inline">Notifications</span>
@@ -541,7 +540,6 @@ const StudentProfile = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column - Profile Card */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-xl shadow-md border border-blue-100 overflow-hidden sticky top-8">
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-6 text-center">
@@ -744,7 +742,6 @@ const StudentProfile = () => {
               </div>
             </div>
 
-            {/* Right Column */}
             <div className="lg:col-span-2">
               <div className="grid grid-cols-2 md:grid-cols-2 gap-4 mb-6">
                 {quickActions.map((action, index) => {
@@ -769,7 +766,6 @@ const StudentProfile = () => {
                 })}
               </div>
 
-              {/* Recent Activity Card */}
               <div className="bg-white rounded-xl shadow-md border border-blue-100 overflow-hidden">
                 <div className="border-b border-blue-100 px-6 py-4 bg-gradient-to-r from-blue-50 to-white">
                   <div className="flex items-center gap-2">
@@ -822,11 +818,9 @@ const StudentProfile = () => {
         </div>
       </div>
 
-      {/* Modern Activity Details Modal */}
       {selectedActivity && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in" onClick={() => setSelectedActivity(null)}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto animate-slide-down" onClick={(e) => e.stopPropagation()}>
-            {/* Modal Header with Gradient */}
             <div className={`bg-gradient-to-r ${getThemeColors(selectedActivity.colorTheme).bg} sticky top-0 border-b ${getThemeColors(selectedActivity.colorTheme).border} px-6 py-5`}>
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-4">
@@ -853,7 +847,6 @@ const StudentProfile = () => {
               </div>
             </div>
 
-            {/* Modal Body */}
             <div className="p-6">
               {selectedActivity.action === 'Room Change Request' && (
                 <div className="space-y-4">
@@ -997,7 +990,6 @@ const StudentProfile = () => {
         </div>
       )}
 
-      {/* Logout Modal */}
       {showLogoutModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 animate-slide-down">
