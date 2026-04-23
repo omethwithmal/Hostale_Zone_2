@@ -1,10 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Search } from "lucide-react";
+import { CheckCircle2, Search, SlidersHorizontal } from "lucide-react";
 import { api } from "../../api/axios";
 import ComplaintCard from "../ComplaintCard/ComplaintCard";
-import PageHeader from "../PagHeder/PageHeader";
-
-// CHANGED: use your own complaint navbar and footer from the same folder
 import NaveBar from "./NaveBar";
 import Footer from "./Footer";
 
@@ -23,9 +20,7 @@ export default function Complaints() {
     async function loadComplaints(showLoader = false) {
       try {
         if (showLoader && mounted) setLoading(true);
-
         const response = await api.get("/complaints");
-
         if (mounted) {
           setComplaints(response.data.data || []);
           setError("");
@@ -41,11 +36,7 @@ export default function Complaints() {
     }
 
     loadComplaints(true);
-
-    const interval = setInterval(() => {
-      loadComplaints(false);
-    }, 5000);
-
+    const interval = setInterval(() => loadComplaints(false), 5000);
     return () => {
       mounted = false;
       clearInterval(interval);
@@ -53,18 +44,13 @@ export default function Complaints() {
   }, []);
 
   async function handleCancelComplaint(complaint) {
-    const confirmed = window.confirm(
-      `Are you sure you want to cancel complaint ${complaint.complaintId}?`
-    );
-
+    const confirmed = window.confirm(`Are you sure you want to cancel complaint ${complaint.complaintId}?`);
     if (!confirmed) return;
 
     try {
       setCancellingId(complaint._id);
       setSuccess("");
-
       await api.delete(`/complaints/${complaint._id}/cancel`);
-
       setComplaints((current) => current.filter((item) => item._id !== complaint._id));
       setError("");
       setSuccess(`Complaint ${complaint.complaintId} was cancelled successfully.`);
@@ -78,8 +64,9 @@ export default function Complaints() {
 
   const filtered = useMemo(() => {
     return complaints.filter((item) => {
-      const matchQuery = [
+      const haystack = [
         item.complaintId,
+        item.title,
         item.category,
         item.description,
         item.hostelOrRoomNo,
@@ -89,47 +76,54 @@ export default function Complaints() {
         item.roomNo,
       ]
         .join(" ")
-        .toLowerCase()
-        .includes(query.toLowerCase());
+        .toLowerCase();
 
-      const matchStatus = status === "All" ? true : item.status === status;
-      return matchQuery && matchStatus;
+      const matchesQuery = haystack.includes(query.toLowerCase());
+      const matchesStatus = status === "All" ? true : item.status === status;
+      return matchesQuery && matchesStatus;
     });
   }, [complaints, query, status]);
 
   return (
     <>
       <NaveBar />
+      <main className="complaint-shell space-y-8">
 
-      <div className="w-full space-y-8 px-4 sm:px-6 lg:px-8 2xl:px-10 py-8">
-        <PageHeader
-          eyebrow="Complaint History"
-          title="Review your submitted complaints and track their current status."
-          description="Search by complaint ID, category, room, student, or keywords to quickly find complaint records and monitor their progress."
-        />
+        <section>
+          <h1 className="text-3xl font-semibold text-slate-900">Complaint History</h1>
+          <p className="mt-2 text-sm text-slate-600">
+            Review your submitted complaints and track their current status.
+          </p>
+        </section>
 
-        <section className="rounded-[30px] border border-white/70 bg-white/90 p-6 shadow-[0_20px_70px_-35px_rgba(37,99,235,0.4)]">
-          <div className="grid gap-4 lg:grid-cols-[1fr_220px]">
-            <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <Search size={18} className="text-slate-400" />
+        <section className="surface-card p-4 sm:p-5">
+
+          <div className="grid gap-3 lg:grid-cols-[1fr_180px]">
+
+            <label className="flex items-center gap-3 rounded-2xl border border-violet-100 bg-violet-50 px-4 py-3 shadow-sm">
+              <Search size={18} className="text-slate-500" />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search by complaint ID, student, room or description"
-                className="w-full bg-transparent text-sm outline-none"
+                placeholder="Search by complaint ID, title, or description..."
+                className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
               />
             </label>
 
-            <select
-              value={status}
-              onChange={(event) => setStatus(event.target.value)}
-              className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none"
-            >
-              <option>All</option>
-              <option>Pending</option>
-              <option>In Progress</option>
-              <option>Resolved</option>
-            </select>
+            <div className="flex items-center gap-2 rounded-2xl border border-violet-100 bg-violet-50 px-4 py-3 shadow-sm">
+              <SlidersHorizontal size={16} className="text-slate-500" />
+              <select
+                value={status}
+                onChange={(event) => setStatus(event.target.value)}
+                className="w-full bg-transparent text-sm text-slate-700 outline-none"
+              >
+                <option value="All">All Status</option>
+                <option value="Pending">Pending</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Resolved">Resolved</option>
+              </select>
+            </div>
+
           </div>
 
           {success ? (
@@ -139,16 +133,20 @@ export default function Complaints() {
             </div>
           ) : null}
 
-          {error ? <p className="mt-4 text-sm text-amber-700">{error}</p> : null}
+          {error ? (
+            <p className="mt-4 text-sm text-amber-800">{error}</p>
+          ) : null}
+
         </section>
 
-        <section className="space-y-6">
+        <section className="space-y-5">
+
           {loading ? (
-            <div className="rounded-[28px] border border-white/70 bg-white/90 p-8 text-sm text-slate-500">
+            <div className="surface-card bg-gradient-to-br from-white to-violet-50 p-8 text-sm text-slate-600">
               Loading complaint history...
             </div>
           ) : filtered.length === 0 ? (
-            <div className="rounded-[28px] border border-white/70 bg-white/90 p-8 text-sm text-slate-500">
+            <div className="surface-card bg-gradient-to-br from-white to-violet-50 p-8 text-sm text-slate-600">
               No complaints match your filters.
             </div>
           ) : (
@@ -161,9 +159,10 @@ export default function Complaints() {
               />
             ))
           )}
-        </section>
-      </div>
 
+        </section>
+
+      </main>
       <Footer />
     </>
   );
