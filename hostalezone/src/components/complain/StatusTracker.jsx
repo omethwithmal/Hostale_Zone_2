@@ -5,28 +5,27 @@ export default function StatusTracker({ status = "Pending" }) {
 
   return (
     <div>
-      <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Live status tracker</p>
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Activity timeline</p>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         {steps.map((step, index) => {
-          const active = index <= activeIndex;
-          const isCurrent = step === status;
-
+          const completed = index <= activeIndex;
+          const current = step === status;
           return (
             <div key={step} className="flex items-center gap-2">
               <span
-                className={`rounded-full px-3 py-1 text-xs font-bold transition ${
-                  active
-                    ? isCurrent
-                      ? "bg-gradient-to-r from-blue-700 to-indigo-600 text-white"
-                      : "bg-blue-100 text-blue-700"
-                    : "bg-slate-100 text-slate-400"
+                className={`inline-flex min-w-[94px] items-center justify-center rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                  current
+                    ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white"
+                    : completed
+                      ? "bg-indigo-50 text-indigo-700"
+                      : "bg-slate-100 text-slate-400"
                 }`}
               >
                 {step}
               </span>
-              {index !== steps.length - 1 && (
-                <span className={`h-1 w-8 rounded-full ${active ? "bg-blue-500" : "bg-slate-200"}`} />
-              )}
+              {index !== steps.length - 1 ? (
+                <span className={`h-1 w-7 rounded-full ${completed ? "bg-indigo-300" : "bg-slate-200"}`} />
+              ) : null}
             </div>
           );
         })}

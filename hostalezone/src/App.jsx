@@ -35,6 +35,7 @@ import AdminPanel from "./components/complain/AdminPanel";
 import Dashboard from "./components/complain/Dashboard";
 import NewComplaint from "./components/complain/NewComplaint";
 import ComplaintHome from "./components/complain/Home";
+import ComplaintDetails from "./components/complain/ComplaintDetails";
 
 // Main landing page
 function HomePage() {
@@ -116,6 +117,7 @@ function App() {
         <Route path="/complaint-dashboard" element={<Dashboard />} />
         <Route path="/complaint-admin" element={<AdminPanel />} />
         <Route path="/complaint-home" element={<ComplaintHome />} />
+        <Route path="/complaint-details/:id" element={<ComplaintDetails />} />
       </Routes>
     </Router>
   );
